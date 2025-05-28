@@ -62,6 +62,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      isAdmin: insertUser.isAdmin || false,
       createdAt: new Date(),
     };
     this.users.set(id, user);
@@ -101,6 +102,7 @@ export class MemStorage implements IStorage {
     const event: Event = { 
       ...insertEvent, 
       id,
+      description: insertEvent.description || null,
       createdAt: new Date(),
     };
     this.events.set(id, event);

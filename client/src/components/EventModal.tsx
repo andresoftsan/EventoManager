@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import {
   Dialog,
@@ -19,7 +20,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import type { Event } from "@shared/schema";
 
 const eventFormSchema = z.object({
@@ -27,6 +36,7 @@ const eventFormSchema = z.object({
   description: z.string().optional(),
   date: z.string().min(1, "Data é obrigatória"),
   time: z.string().min(1, "Hora é obrigatória"),
+  userId: z.number().optional(),
 });
 
 type EventFormData = z.infer<typeof eventFormSchema>;
@@ -38,6 +48,15 @@ interface EventModalProps {
   onSave: (data: EventFormData) => Promise<void>;
 }
 
+interface UserWithoutPassword {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  createdAt: string;
+}
+
 export default function EventModal({ 
   open, 
   onOpenChange, 
@@ -46,6 +65,15 @@ export default function EventModal({
 }: EventModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { data: authData } = useAuth();
+
+  // Fetch users list for admin users
+  const { data: users = [] } = useQuery<UserWithoutPassword[]>({
+    queryKey: ["/api/users"],
+    enabled: authData?.user?.isAdmin && open,
+  });
+
+  const isAdmin = authData?.user?.isAdmin;
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventFormSchema),
@@ -54,6 +82,7 @@ export default function EventModal({
       description: event?.description || "",
       date: event?.date || "",
       time: event?.time || "",
+      userId: event?.userId || undefined,
     },
   });
 
@@ -151,6 +180,37 @@ export default function EventModal({
                 )}
               />
             </div>
+            
+            {/* User Selection for Admin */}
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Usuário do Evento</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value?.toString() || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o usuário" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.name} (@{user.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <div className="flex space-x-4 pt-4">
               <Button

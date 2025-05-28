@@ -168,9 +168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/events", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser(req.session.userId!);
+      let targetUserId = req.session.userId;
+
+      // If admin is creating event for another user
+      if (user?.isAdmin && req.body.userId) {
+        targetUserId = req.body.userId;
+      }
+
       const eventData = insertEventSchema.parse({
         ...req.body,
-        userId: req.session.userId
+        userId: targetUserId
       });
 
       const event = await storage.createEvent(eventData);
