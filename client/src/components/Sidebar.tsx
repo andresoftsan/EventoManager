@@ -22,7 +22,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
   return (
     <>
       {/* Mobile Menu Button */}
-      <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+      <div className="lg:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-50">
         <Button
           variant="ghost"
           size="sm"
@@ -34,13 +34,24 @@ export default function Sidebar({ className = "" }: SidebarProps) {
         </Button>
       </div>
 
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={closeMobileMenu}
+        />
+      )}
+
       {/* Sidebar */}
       <aside className={`
-        ${isMobileMenuOpen ? 'block' : 'hidden'} lg:block
-        w-full lg:w-64 bg-white shadow-sm lg:min-h-screen border-r border-gray-200 
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+        fixed lg:relative top-0 left-0 
+        w-64 lg:w-64 bg-white shadow-lg lg:shadow-sm h-full lg:min-h-screen 
+        border-r border-gray-200 z-50 lg:z-auto
+        transition-transform duration-300 ease-in-out
         ${className}
       `}>
-        <nav className="p-4">
+        <nav className="p-4 pt-6 lg:pt-4">
           <ul className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -67,14 +78,6 @@ export default function Sidebar({ className = "" }: SidebarProps) {
           </ul>
         </nav>
       </aside>
-
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={closeMobileMenu}
-        />
-      )}
     </>
   );
 }
