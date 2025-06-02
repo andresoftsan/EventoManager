@@ -300,32 +300,37 @@ export default function Agenda() {
                     {generateMonthCalendar().days.map((day, index) => (
                       <div
                         key={index}
-                        className={`aspect-square p-2 rounded-lg cursor-pointer transition-colors ${
+                        className={`min-h-[120px] p-2 rounded-lg cursor-pointer transition-colors border ${
                           day.isCurrentMonth 
-                            ? "hover:bg-gray-50" 
-                            : "text-gray-400"
+                            ? "hover:bg-gray-50 border-gray-200" 
+                            : "text-gray-400 border-gray-100"
                         }`}
                         onClick={() => {
                           setCurrentDate(day.date);
                           setViewMode('day');
                         }}
                       >
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-medium mb-2">
                           {day.date.getDate()}
                         </div>
                         {day.events.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {day.events.slice(0, 2).map((_, eventIndex) => (
+                          <div className="space-y-1">
+                            {day.events.slice(0, 3).map((event, eventIndex) => (
                               <div
-                                key={eventIndex}
-                                className={`w-2 h-2 rounded-full ${
-                                  eventIndex === 0 ? 'bg-blue-500' :
-                                  eventIndex === 1 ? 'bg-green-500' : 'bg-yellow-500'
+                                key={event.id}
+                                className={`text-xs p-1 rounded text-white truncate ${
+                                  eventIndex % 3 === 0 ? 'bg-blue-500' :
+                                  eventIndex % 3 === 1 ? 'bg-green-500' : 'bg-yellow-500'
                                 }`}
-                              />
+                                title={`${event.title} - ${event.startTime} às ${event.endTime}`}
+                              >
+                                {event.startTime} {event.title}
+                              </div>
                             ))}
-                            {day.events.length > 2 && (
-                              <div className="text-xs text-gray-500">+{day.events.length - 2}</div>
+                            {day.events.length > 3 && (
+                              <div className="text-xs text-gray-500 text-center">
+                                +{day.events.length - 3} evento{day.events.length > 4 ? 's' : ''}
+                              </div>
                             )}
                           </div>
                         )}
