@@ -23,6 +23,36 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  razaoSocial: text("razao_social").notNull(),
+  nomeFantasia: text("nome_fantasia"),
+  cnpj: text("cnpj").notNull().unique(),
+  email: text("email").notNull(),
+  telefone: text("telefone"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const kanbanStages = pgTable("kanban_stages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  clientId: integer("client_id").notNull().references(() => clients.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  stageId: integer("stage_id").notNull().references(() => kanbanStages.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -33,10 +63,32 @@ export const insertEventSchema = createInsertSchema(events).omit({
   createdAt: true,
 });
 
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKanbanStageSchema = createInsertSchema(kanbanStages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
+export type InsertKanbanStage = z.infer<typeof insertKanbanStageSchema>;
+export type KanbanStage = typeof kanbanStages.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
 
 // Auth schemas
 export const loginSchema = z.object({
