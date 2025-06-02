@@ -218,7 +218,9 @@ export class MemStorage implements IStorage {
   async createClient(insertClient: InsertClient): Promise<Client> {
     const id = this.currentClientId++;
     const client: Client = { 
-      ...insertClient, 
+      ...insertClient,
+      nomeFantasia: insertClient.nomeFantasia || null,
+      telefone: insertClient.telefone || null,
       id, 
       createdAt: new Date(),
     };
@@ -288,7 +290,8 @@ export class MemStorage implements IStorage {
   async createTask(insertTask: InsertTask): Promise<Task> {
     const id = this.currentTaskId++;
     const task: Task = { 
-      ...insertTask, 
+      ...insertTask,
+      description: insertTask.description || null,
       id, 
       createdAt: new Date(),
       updatedAt: new Date(),

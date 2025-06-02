@@ -2,7 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
 import { storage } from "./storage";
-import { loginSchema, insertUserSchema, insertEventSchema } from "@shared/schema";
+import { 
+  loginSchema, 
+  insertUserSchema, 
+  insertEventSchema,
+  insertClientSchema,
+  insertKanbanStageSchema,
+  insertTaskSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 declare module 'express-session' {
@@ -270,6 +277,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar estatísticas" });
+    }
+  });
+
+  // ===== CLIENT ROUTES =====
+  
+  // Get all clients
+  app.get("/api/clients", requireAuth, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar clientes" });
+    }
+  });
+
+  // Create client (admin only)
+  app.post("/api/clients", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const clientData = insertClientSchema.parse(req.body);
+      const client = await storage.createClient(clientData);
+      res.status(201).json(client);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar cliente" });
+    }
+  });
+
+  // Update client (admin only)
+  app.put("/api/clients/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const clientData = insertClientSchema.partial().parse(req.body);
+      const client = await storage.updateClient(id, clientData);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar cliente" });
+    }
+  });
+
+  // Delete client (admin only)
+  app.delete("/api/clients/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteClient(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+      
+      res.json({ message: "Cliente excluído com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir cliente" });
+    }
+  });
+
+  // ===== KANBAN STAGES ROUTES =====
+  
+  // Get all kanban stages
+  app.get("/api/kanban-stages", requireAuth, async (req, res) => {
+    try {
+      const stages = await storage.getAllKanbanStages();
+      res.json(stages);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar etapas do kanban" });
+    }
+  });
+
+  // Create kanban stage (admin only)
+  app.post("/api/kanban-stages", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const stageData = insertKanbanStageSchema.parse(req.body);
+      const stage = await storage.createKanbanStage(stageData);
+      res.status(201).json(stage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar etapa do kanban" });
+    }
+  });
+
+  // Update kanban stage (admin only)
+  app.put("/api/kanban-stages/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const stageData = insertKanbanStageSchema.partial().parse(req.body);
+      const stage = await storage.updateKanbanStage(id, stageData);
+      
+      if (!stage) {
+        return res.status(404).json({ message: "Etapa não encontrada" });
+      }
+      
+      res.json(stage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar etapa do kanban" });
+    }
+  });
+
+  // Delete kanban stage (admin only)
+  app.delete("/api/kanban-stages/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteKanbanStage(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Etapa não encontrada" });
+      }
+      
+      res.json({ message: "Etapa excluída com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir etapa do kanban" });
+    }
+  });
+
+  // ===== TASK ROUTES =====
+  
+  // Get all tasks (with filtering)
+  app.get("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      let tasks;
+      
+      if (user?.isAdmin) {
+        tasks = await storage.getAllTasks();
+      } else {
+        tasks = await storage.getTasksByUserId(req.session.userId!);
+      }
+
+      // Get additional data for tasks
+      const tasksWithDetails = await Promise.all(
+        tasks.map(async (task) => {
+          const taskUser = await storage.getUser(task.userId);
+          const client = await storage.getClient(task.clientId);
+          const stage = await storage.getKanbanStage(task.stageId);
+          
+          return {
+            ...task,
+            userName: taskUser?.name || "Usuário desconhecido",
+            clientName: client?.razaoSocial || "Cliente desconhecido",
+            stageName: stage?.name || "Etapa desconhecida"
+          };
+        })
+      );
+
+      res.json(tasksWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar tarefas" });
+    }
+  });
+
+  // Create task
+  app.post("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      let targetUserId = req.session.userId;
+
+      // If admin is creating task for another user
+      if (user?.isAdmin && req.body.userId) {
+        targetUserId = req.body.userId;
+      }
+
+      const taskData = insertTaskSchema.parse({
+        ...req.body,
+        userId: targetUserId,
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate)
+      });
+
+      const task = await storage.createTask(taskData);
+      res.status(201).json(task);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar tarefa" });
+    }
+  });
+
+  // Update task
+  app.put("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(req.session.userId!);
+      const task = await storage.getTask(id);
+
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      // Check if user can update this task
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado a atualizar esta tarefa" });
+      }
+
+      const updateData = { ...req.body };
+      if (updateData.startDate) {
+        updateData.startDate = new Date(updateData.startDate);
+      }
+      if (updateData.endDate) {
+        updateData.endDate = new Date(updateData.endDate);
+      }
+
+      const taskData = insertTaskSchema.partial().parse(updateData);
+      const updatedTask = await storage.updateTask(id, taskData);
+      
+      res.json(updatedTask);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar tarefa" });
+    }
+  });
+
+  // Delete task
+  app.delete("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(req.session.userId!);
+      const task = await storage.getTask(id);
+
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      // Check if user can delete this task
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado a excluir esta tarefa" });
+      }
+
+      const success = await storage.deleteTask(id);
+      if (!success) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      res.json({ message: "Tarefa excluída com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir tarefa" });
     }
   });
 
