@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import type { Task, Client, KanbanStage, User } from "@shared/schema";
+import type { Task, Client, KanbanStage, User as UserType } from "@shared/schema";
 
 const taskFormSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -408,7 +408,7 @@ export default function Tarefas() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {users.map((user: User) => (
+                          {users.map((user: UserType) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.name}
                             </SelectItem>

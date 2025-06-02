@@ -10,6 +10,10 @@ import Sidebar from "@/components/Sidebar";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Agenda from "@/pages/Agenda";
+import Tarefas from "@/pages/Tarefas";
+import Kanban from "@/pages/Kanban";
+import Sprints from "@/pages/Sprints";
+import Clientes from "@/pages/Clientes";
 import Configuracoes from "@/pages/Configuracoes";
 import NotFound from "@/pages/not-found";
 
@@ -24,6 +28,10 @@ function AuthenticatedApp() {
             <Route path="/" component={() => <Dashboard />} />
             <Route path="/dashboard" component={() => <Dashboard />} />
             <Route path="/agenda" component={() => <Agenda />} />
+            <Route path="/tarefas" component={() => <Tarefas />} />
+            <Route path="/kanban" component={() => <Kanban />} />
+            <Route path="/sprints" component={() => <Sprints />} />
+            <Route path="/clientes" component={() => <Clientes />} />
             <Route path="/configuracoes" component={() => <Configuracoes />} />
             <Route component={NotFound} />
           </Switch>
