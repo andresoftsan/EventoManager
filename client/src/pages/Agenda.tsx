@@ -209,7 +209,7 @@ export default function Agenda() {
     
     return {
       date: currentDate,
-      events: dayEvents.sort((a, b) => a.time.localeCompare(b.time)),
+      events: dayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime)),
       dayName: currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     };
   };
@@ -442,7 +442,7 @@ export default function Agenda() {
                               <p className="text-sm text-gray-600">{event.description}</p>
                             )}
                             <div className="flex items-center gap-4 mt-1">
-                              <Badge variant="outline">{event.time}</Badge>
+                              <Badge variant="outline">{event.startTime} - {event.endTime}</Badge>
                               <span className="text-sm text-gray-500">por {event.userName}</span>
                             </div>
                           </div>
