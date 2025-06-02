@@ -254,12 +254,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser(req.session.userId!);
-      let events;
+      let events, tasks;
       
       if (user?.isAdmin) {
         events = await storage.getAllEvents();
+        tasks = await storage.getAllTasks();
       } else {
         events = await storage.getEventsByUserId(req.session.userId!);
+        tasks = await storage.getTasksByUserId(req.session.userId!);
       }
 
       const today = new Date().toISOString().split('T')[0];
@@ -267,11 +269,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       nextWeek.setDate(nextWeek.getDate() + 7);
       const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
+      // Task statistics
+      const openTasks = await Promise.all(
+        tasks.map(async task => {
+          const stage = await storage.getKanbanStage(task.stageId);
+          return stage && stage.name?.toLowerCase() !== "concluído";
+        })
+      ).then(results => results.filter(Boolean).length);
+
+      const overdueTasks = await Promise.all(
+        tasks.map(async task => {
+          const stage = await storage.getKanbanStage(task.stageId);
+          const isNotCompleted = stage && stage.name?.toLowerCase() !== "concluído";
+          const isOverdue = new Date(task.endDate) < new Date();
+          return isNotCompleted && isOverdue;
+        })
+      ).then(results => results.filter(Boolean).length);
+
+      const todayTasks = tasks.filter(task => {
+        const taskEndDate = new Date(task.endDate).toISOString().split('T')[0];
+        return taskEndDate === today;
+      }).length;
+
       const stats = {
         totalEvents: events.length,
         todayEvents: events.filter(e => e.date === today).length,
         nextWeekEvents: events.filter(e => e.date >= today && e.date <= nextWeekStr).length,
         activeUsers: user?.isAdmin ? (await storage.getAllUsers()).length : 1,
+        totalTasks: tasks.length,
+        openTasks,
+        overdueTasks,
+        todayTasks,
       };
 
       res.json(stats);

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, CalendarCheck, Users, Clock } from "lucide-react";
+import { Calendar, CalendarCheck, Users, Clock, CheckSquare, AlertTriangle, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -8,6 +8,10 @@ interface Stats {
   todayEvents: number;
   nextWeekEvents: number;
   activeUsers: number;
+  totalTasks: number;
+  openTasks: number;
+  overdueTasks: number;
+  todayTasks: number;
 }
 
 interface EventWithUser {
@@ -53,18 +57,32 @@ export default function Dashboard() {
       iconColor: "text-green-600",
     },
     {
+      title: "Tarefas em Aberto",
+      value: stats?.openTasks || 0,
+      icon: CheckSquare,
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600",
+    },
+    {
+      title: "Tarefas Atrasadas",
+      value: stats?.overdueTasks || 0,
+      icon: AlertTriangle,
+      bgColor: "bg-red-50",
+      iconColor: "text-red-600",
+    },
+    {
+      title: "Tarefas Hoje",
+      value: stats?.todayTasks || 0,
+      icon: Target,
+      bgColor: "bg-orange-50",
+      iconColor: "text-orange-600",
+    },
+    {
       title: "Usuários Ativos",
       value: stats?.activeUsers || 0,
       icon: Users,
       bgColor: "bg-yellow-50",
       iconColor: "text-yellow-600",
-    },
-    {
-      title: "Próxima Semana",
-      value: stats?.nextWeekEvents || 0,
-      icon: Clock,
-      bgColor: "bg-red-50",
-      iconColor: "text-red-600",
     },
   ];
 
@@ -76,7 +94,7 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           
