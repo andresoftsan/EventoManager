@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import EventModal from "@/components/EventModal";
+import EventModalNew from "@/components/EventModalNew";
 import type { Event } from "@shared/schema";
 
 interface EventWithUser extends Event {
@@ -377,7 +377,7 @@ export default function Agenda() {
                       <div className="space-y-1">
                         {day.events.slice(0, 3).map((event, eventIndex) => (
                           <div key={event.id} className="text-xs p-1 rounded bg-blue-100 text-blue-800 truncate">
-                            {event.time} - {event.title}
+                            {event.startTime} - {event.title}
                           </div>
                         ))}
                         {day.events.length > 3 && (
@@ -476,7 +476,7 @@ export default function Agenda() {
         </TabsContent>
       </Tabs>
 
-      <EventModal
+      <EventModalNew
         open={eventModalOpen}
         onOpenChange={setEventModalOpen}
         event={editingEvent}

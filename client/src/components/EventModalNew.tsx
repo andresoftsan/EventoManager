@@ -40,7 +40,6 @@ const eventFormSchema = z.object({
   startTime: z.string().min(1, "Hora inicial é obrigatória"),
   endTime: z.string().min(1, "Hora final é obrigatória"),
   multipleDays: z.boolean().default(false),
-  selectedDates: z.array(z.string()).optional(),
   userId: z.number().optional(),
 });
 
@@ -50,7 +49,7 @@ interface EventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event?: Event;
-  onSave: (data: EventFormData) => Promise<void>;
+  onSave: (data: any) => Promise<void>;
 }
 
 interface UserWithoutPassword {
@@ -62,7 +61,7 @@ interface UserWithoutPassword {
   createdAt: string;
 }
 
-export default function EventModal({ 
+export default function EventModalNew({ 
   open, 
   onOpenChange, 
   event, 
@@ -90,20 +89,59 @@ export default function EventModal({
       startTime: event?.startTime || "",
       endTime: event?.endTime || "",
       multipleDays: false,
-      selectedDates: [],
       userId: event?.userId || undefined,
     },
   });
 
+  const watchMultipleDays = form.watch("multipleDays");
+
   const onSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
     try {
-      await onSave(data);
+      if (data.multipleDays && data.endDate) {
+        // Create events for multiple days
+        const events = [];
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+        
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const eventData = {
+            title: data.title,
+            description: data.description,
+            date: d.toISOString().split('T')[0],
+            startTime: data.startTime,
+            endTime: data.endTime,
+            userId: data.userId
+          };
+          events.push(eventData);
+        }
+
+        // Save each event
+        for (const eventData of events) {
+          await onSave(eventData);
+        }
+      } else {
+        // Single event
+        const eventData = {
+          title: data.title,
+          description: data.description,
+          date: data.startDate,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          userId: data.userId
+        };
+        await onSave(eventData);
+      }
+
       form.reset();
       onOpenChange(false);
       toast({
         title: "Sucesso",
-        description: event ? "Evento atualizado com sucesso!" : "Evento criado com sucesso!",
+        description: data.multipleDays 
+          ? "Eventos criados com sucesso!" 
+          : event 
+            ? "Evento atualizado com sucesso!" 
+            : "Evento criado com sucesso!",
       });
     } catch (error) {
       toast({
@@ -118,7 +156,7 @@ export default function EventModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {event ? "Editar Evento" : "Novo Evento"}
@@ -159,14 +197,36 @@ export default function EventModal({
                 </FormItem>
               )}
             />
+
+            {/* Multiple Days Option */}
+            {!event && (
+              <FormField
+                control={form.control}
+                name="multipleDays"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Criar evento para múltiplos dias</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
             
+            {/* Date Fields */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="date"
+                name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data</FormLabel>
+                    <FormLabel>Data Inicial</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -175,12 +235,45 @@ export default function EventModal({
                 )}
               />
               
+              {watchMultipleDays && (
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data Final</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Time Fields */}
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="time"
+                name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora</FormLabel>
+                    <FormLabel>Hora Inicial</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora Final</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>

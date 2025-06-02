@@ -17,7 +17,8 @@ export const events = pgTable("events", {
   title: text("title").notNull(),
   description: text("description"),
   date: text("date").notNull(), // YYYY-MM-DD format
-  time: text("time").notNull(), // HH:MM format
+  startTime: text("start_time").notNull(), // HH:MM format
+  endTime: text("end_time").notNull(), // HH:MM format
   userId: integer("user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
