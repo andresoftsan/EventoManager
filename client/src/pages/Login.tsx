@@ -48,7 +48,7 @@ export default function Login() {
             <div className="bg-blue-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
               <Calendar className="text-white h-8 w-8" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">Sistema de Eventos</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Workday</h1>
             <p className="text-gray-600">Faça login para acessar sua conta</p>
           </div>
           
@@ -101,11 +101,7 @@ export default function Login() {
             </form>
           </Form>
           
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Usuário master: <strong>admin</strong> | Senha: <strong>master123</strong>
-            </p>
-          </div>
+
         </CardContent>
       </Card>
     </div>

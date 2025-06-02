@@ -37,10 +37,10 @@ export default function TopNavigation() {
             <Calendar className="text-white h-4 w-4 lg:h-6 lg:w-6" />
           </div>
           <h1 className="text-lg lg:text-xl font-semibold text-gray-800 hidden sm:block">
-            Sistema de Eventos
+            Workday
           </h1>
           <h1 className="text-lg font-semibold text-gray-800 sm:hidden">
-            Eventos
+            Workday
           </h1>
         </div>
         
