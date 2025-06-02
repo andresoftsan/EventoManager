@@ -134,13 +134,13 @@ export default function Configuracoes() {
   const isAdmin = authData?.user?.isAdmin;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Configurações</h2>
-        <p className="text-gray-600">Gerencie usuários e permissões do sistema</p>
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">Configurações</h2>
+        <p className="text-gray-600 text-sm lg:text-base">Gerencie usuários e permissões do sistema</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* User Registration Form */}
         <Card className="border border-gray-200">
           <CardHeader className="border-b border-gray-200">

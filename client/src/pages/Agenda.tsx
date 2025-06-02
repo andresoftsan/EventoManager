@@ -217,17 +217,17 @@ export default function Agenda() {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Agenda</h2>
-          <p className="text-gray-600">Gerencie seus eventos e compromissos</p>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">Agenda</h2>
+          <p className="text-gray-600 text-sm lg:text-base">Gerencie seus eventos e compromissos</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           {/* User Filter for Admins */}
           {isAdmin && (
             <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filtrar por usuário" />
               </SelectTrigger>
@@ -244,7 +244,7 @@ export default function Agenda() {
           
           <Button 
             onClick={handleNewEvent}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Novo Evento
