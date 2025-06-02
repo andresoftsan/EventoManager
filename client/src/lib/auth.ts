@@ -31,12 +31,10 @@ export function useLogout() {
       await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Clear all cached queries
+      // Clear all cached data
       queryClient.clear();
-      // Force refresh of auth state
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      // Redirect to login by clearing auth cache
-      queryClient.setQueryData(["/api/auth/me"], null);
+      // Force a hard refresh of the page to reset state
+      window.location.reload();
     },
   });
 }
