@@ -40,6 +40,7 @@ const eventFormSchema = z.object({
   startTime: z.string().min(1, "Hora inicial é obrigatória"),
   endTime: z.string().min(1, "Hora final é obrigatória"),
   multipleDays: z.boolean().default(false),
+  replicateToAllUsers: z.boolean().default(false),
   userId: z.number().optional(),
 });
 
@@ -89,59 +90,71 @@ export default function EventModalNew({
       startTime: event?.startTime || "",
       endTime: event?.endTime || "",
       multipleDays: false,
+      replicateToAllUsers: false,
       userId: event?.userId || undefined,
     },
   });
 
   const watchMultipleDays = form.watch("multipleDays");
+  const watchReplicateToAllUsers = form.watch("replicateToAllUsers");
 
   const onSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
     try {
+      const targetUsers = data.replicateToAllUsers ? users : [{ id: data.userId }];
+      
       if (data.multipleDays && data.endDate) {
         // Create events for multiple days
-        const events = [];
         const startDate = new Date(data.startDate);
         const endDate = new Date(data.endDate);
         
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          const eventData = {
-            title: data.title,
-            description: data.description,
-            date: d.toISOString().split('T')[0],
-            startTime: data.startTime,
-            endTime: data.endTime,
-            userId: data.userId
-          };
-          events.push(eventData);
-        }
-
-        // Save each event
-        for (const eventData of events) {
-          await onSave(eventData);
+          for (const user of targetUsers) {
+            const eventData = {
+              title: data.title,
+              description: data.description,
+              date: d.toISOString().split('T')[0],
+              startTime: data.startTime,
+              endTime: data.endTime,
+              userId: user.id
+            };
+            await onSave(eventData);
+          }
         }
       } else {
         // Single event
-        const eventData = {
-          title: data.title,
-          description: data.description,
-          date: data.startDate,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          userId: data.userId
-        };
-        await onSave(eventData);
+        for (const user of targetUsers) {
+          const eventData = {
+            title: data.title,
+            description: data.description,
+            date: data.startDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            userId: user.id
+          };
+          await onSave(eventData);
+        }
       }
 
       form.reset();
       onOpenChange(false);
+      const totalEvents = data.replicateToAllUsers ? 
+        (data.multipleDays && data.endDate ? 
+          users.length * Math.ceil((new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 :
+          users.length) : 
+        (data.multipleDays && data.endDate ? 
+          Math.ceil((new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 
+          1);
+
       toast({
         title: "Sucesso",
-        description: data.multipleDays 
-          ? "Eventos criados com sucesso!" 
-          : event 
-            ? "Evento atualizado com sucesso!" 
-            : "Evento criado com sucesso!",
+        description: data.replicateToAllUsers
+          ? `Evento replicado para todos os ${users.length} usuários!` 
+          : data.multipleDays 
+            ? "Eventos criados com sucesso!" 
+            : event 
+              ? "Evento atualizado com sucesso!" 
+              : "Evento criado com sucesso!",
       });
     } catch (error) {
       toast({
@@ -283,35 +296,62 @@ export default function EventModalNew({
               />
             </div>
             
-            {/* User Selection for Admin */}
+            {/* Admin Options */}
             {isAdmin && (
-              <FormField
-                control={form.control}
-                name="userId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Usuário do Evento</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      value={field.value?.toString() || ""}
-                    >
+              <div className="space-y-4">
+                {/* Replicate to All Users Option */}
+                <FormField
+                  control={form.control}
+                  name="replicateToAllUsers"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o usuário" />
-                        </SelectTrigger>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.name} (@{user.username})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Replicar evento para todos os usuários</FormLabel>
+                        <p className="text-sm text-gray-500">
+                          Cria o evento para todos os usuários cadastrados no sistema
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* User Selection (only if not replicating to all) */}
+                {!watchReplicateToAllUsers && (
+                  <FormField
+                    control={form.control}
+                    name="userId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Usuário do Evento</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString() || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o usuário" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.name} (@{user.username})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+              </div>
             )}
             
             <div className="flex space-x-4 pt-4">
