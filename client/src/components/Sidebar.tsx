@@ -1,5 +1,7 @@
-import { BarChart3, Calendar, Settings } from "lucide-react";
+import { BarChart3, Calendar, Settings, Menu, X } from "lucide-react";
 import { useLocation, Link } from "wouter";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   className?: string;
@@ -7,6 +9,7 @@ interface SidebarProps {
 
 export default function Sidebar({ className = "" }: SidebarProps) {
   const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { path: "/dashboard", icon: BarChart3, label: "Dashboard" },
@@ -14,33 +17,64 @@ export default function Sidebar({ className = "" }: SidebarProps) {
     { path: "/configuracoes", icon: Settings, label: "Configurações" },
   ];
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
-    <aside className={`w-64 bg-white shadow-sm min-h-screen border-r border-gray-200 ${className}`}>
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            
-            return (
-              <li key={item.path}>
-                <Link href={item.path}>
-                  <button
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{item.label}</span>
-                  </button>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </aside>
+    <>
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="flex items-center space-x-2"
+        >
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span>Menu</span>
+        </Button>
+      </div>
+
+      {/* Sidebar */}
+      <aside className={`
+        ${isMobileMenuOpen ? 'block' : 'hidden'} lg:block
+        w-full lg:w-64 bg-white shadow-sm lg:min-h-screen border-r border-gray-200 
+        ${className}
+      `}>
+        <nav className="p-4">
+          <ul className="space-y-2">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              
+              return (
+                <li key={item.path}>
+                  <Link href={item.path}>
+                    <button
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                        isActive
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={closeMobileMenu}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span className="text-sm lg:text-base">{item.label}</span>
+                    </button>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={closeMobileMenu}
+        />
+      )}
+    </>
   );
 }

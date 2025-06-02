@@ -76,24 +76,24 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           
           return (
             <Card key={index} className="border border-gray-200">
-              <CardContent className="p-6">
+              <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                    <p className="text-xs lg:text-sm font-medium text-gray-600">{stat.title}</p>
                     {statsLoading ? (
-                      <Skeleton className="h-8 w-12 mt-1" />
+                      <Skeleton className="h-6 lg:h-8 w-8 lg:w-12 mt-1" />
                     ) : (
-                      <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
+                      <p className="text-lg lg:text-3xl font-bold text-gray-800">{stat.value}</p>
                     )}
                   </div>
-                  <div className={`${stat.bgColor} rounded-lg p-3`}>
-                    <Icon className={`${stat.iconColor} h-6 w-6`} />
+                  <div className={`${stat.bgColor} rounded-lg p-2 lg:p-3`}>
+                    <Icon className={`${stat.iconColor} h-4 w-4 lg:h-6 lg:w-6`} />
                   </div>
                 </div>
               </CardContent>

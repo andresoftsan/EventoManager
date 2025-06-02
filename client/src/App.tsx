@@ -17,9 +17,9 @@ function AuthenticatedApp() {
   return (
     <div className="min-h-screen bg-slate-50">
       <TopNavigation />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6">
+      <div className="flex flex-col lg:flex-row">
+        <Sidebar className="lg:block" />
+        <main className="flex-1 p-4 lg:p-6">
           <Switch>
             <Route path="/" component={() => <Dashboard />} />
             <Route path="/dashboard" component={() => <Dashboard />} />
