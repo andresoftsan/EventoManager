@@ -10,11 +10,20 @@ export default function TopNavigation() {
   const { toast } = useToast();
 
   const handleLogout = () => {
+    if (logout.isPending) return; // Prevent multiple clicks
+    
     logout.mutate(undefined, {
       onSuccess: () => {
         toast({
           title: "Logout realizado",
           description: "Você foi desconectado com sucesso.",
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Erro no logout",
+          description: error.message || "Erro ao fazer logout",
+          variant: "destructive",
         });
       },
     });
