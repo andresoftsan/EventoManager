@@ -1,0 +1,9 @@
+{
+  "name": "workday-production",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
