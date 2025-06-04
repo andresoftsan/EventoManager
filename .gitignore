@@ -1,6 +1,15 @@
 node_modules
 dist
+dist-aws
+aws-dist
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
+.env
+.env.local
+.env.production
+*.log
+build-for-aws.js
+build-for-production.js
+fix-node18-compatibility.js
