@@ -46,29 +46,28 @@ export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const { toast } = useToast();
-  const authResult = useAuth();
-  const authUser = authResult?.user;
+  const authQuery = useAuth();
 
   // Queries
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['/api/tasks'],
-    enabled: !!authUser,
   });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients'],
-    enabled: !!authUser,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
-    enabled: !!authUser?.isAdmin,
   });
 
-  const { data: stages = [] } = useQuery({
+  const { data: stages = [], isLoading: stagesLoading, error: stagesError } = useQuery({
     queryKey: ['/api/kanban-stages'],
-    enabled: !!authUser,
   });
+  
+  console.log('Stages data:', stages);
+  console.log('Stages loading:', stagesLoading);
+  console.log('Stages error:', stagesError);
 
   // Form
   const form = useForm<TaskFormData>({
