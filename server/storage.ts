@@ -307,7 +307,6 @@ export class MemStorage implements IStorage {
       description: insertTask.description || null,
       id, 
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
     this.tasks.set(id, task);
     return task;
@@ -326,7 +325,47 @@ export class MemStorage implements IStorage {
   }
 
   async deleteTask(id: number): Promise<boolean> {
+    // Delete associated checklist items first
+    const checklistItems = Array.from(this.checklistItems.values()).filter(item => item.taskId === id);
+    checklistItems.forEach(item => this.checklistItems.delete(item.id));
+    
     return this.tasks.delete(id);
+  }
+
+  // Checklist methods
+  async getChecklistItemsByTaskId(taskId: number): Promise<ChecklistItem[]> {
+    return Array.from(this.checklistItems.values())
+      .filter(item => item.taskId === taskId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async createChecklistItem(insertItem: InsertChecklistItem): Promise<ChecklistItem> {
+    const id = this.currentChecklistItemId++;
+    const item: ChecklistItem = {
+      ...insertItem,
+      id,
+      order: insertItem.order || 0,
+      completed: insertItem.completed || false,
+      createdAt: new Date(),
+    };
+    this.checklistItems.set(id, item);
+    return item;
+  }
+
+  async updateChecklistItem(id: number, itemUpdate: Partial<InsertChecklistItem>): Promise<ChecklistItem | undefined> {
+    const item = this.checklistItems.get(id);
+    if (!item) return undefined;
+
+    const updatedItem: ChecklistItem = {
+      ...item,
+      ...itemUpdate,
+    };
+    this.checklistItems.set(id, updatedItem);
+    return updatedItem;
+  }
+
+  async deleteChecklistItem(id: number): Promise<boolean> {
+    return this.checklistItems.delete(id);
   }
 }
 

@@ -8,7 +8,8 @@ import {
   insertEventSchema,
   insertClientSchema,
   insertKanbanStageSchema,
-  insertTaskSchema
+  insertTaskSchema,
+  insertChecklistItemSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -556,6 +557,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Tarefa excluída com sucesso" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao excluir tarefa" });
+    }
+  });
+
+  // ===== CHECKLIST ROUTES =====
+
+  // Get checklist items for a task
+  app.get("/api/tasks/:taskId/checklist", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      
+      // Verify task exists and user has access
+      const task = await storage.getTask(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      const checklistItems = await storage.getChecklistItemsByTaskId(taskId);
+      res.json(checklistItems);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar checklist" });
+    }
+  });
+
+  // Create checklist item
+  app.post("/api/tasks/:taskId/checklist", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      
+      // Verify task exists and user has access
+      const task = await storage.getTask(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      const checklistData = insertChecklistItemSchema.parse({
+        ...req.body,
+        taskId
+      });
+
+      const checklistItem = await storage.createChecklistItem(checklistData);
+      res.status(201).json(checklistItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar item do checklist" });
+    }
+  });
+
+  // Update checklist item
+  app.put("/api/checklist/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const checklistData = insertChecklistItemSchema.partial().parse(req.body);
+
+      // Get the checklist item to verify task ownership
+      const checklistItem = await storage.updateChecklistItem(id, { completed: false }); // temp to get item
+      if (!checklistItem) {
+        return res.status(404).json({ message: "Item do checklist não encontrado" });
+      }
+
+      const task = await storage.getTask(checklistItem.taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      const updatedItem = await storage.updateChecklistItem(id, checklistData);
+      res.json(updatedItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar item do checklist" });
+    }
+  });
+
+  // Delete checklist item
+  app.delete("/api/checklist/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      // Get the checklist item to verify task ownership
+      const checklistItems = await storage.getChecklistItemsByTaskId(0); // Get all to find this one
+      const checklistItem = checklistItems.find(item => item.id === id);
+      
+      if (!checklistItem) {
+        return res.status(404).json({ message: "Item do checklist não encontrado" });
+      }
+
+      const task = await storage.getTask(checklistItem.taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Tarefa não encontrada" });
+      }
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin && task.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      const success = await storage.deleteChecklistItem(id);
+      if (!success) {
+        return res.status(404).json({ message: "Item do checklist não encontrado" });
+      }
+
+      res.json({ message: "Item do checklist excluído com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir item do checklist" });
     }
   });
 
