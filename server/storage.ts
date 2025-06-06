@@ -4,6 +4,7 @@ import {
   clients, 
   kanbanStages, 
   tasks,
+  checklistItems,
   type User, 
   type InsertUser, 
   type Event, 
@@ -13,7 +14,9 @@ import {
   type KanbanStage,
   type InsertKanbanStage,
   type Task,
-  type InsertTask
+  type InsertTask,
+  type ChecklistItem,
+  type InsertChecklistItem
 } from "@shared/schema";
 
 export interface IStorage {
@@ -53,6 +56,12 @@ export interface IStorage {
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
+
+  // Checklist methods
+  getChecklistItemsByTaskId(taskId: number): Promise<ChecklistItem[]>;
+  createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
+  updateChecklistItem(id: number, item: Partial<InsertChecklistItem>): Promise<ChecklistItem | undefined>;
+  deleteChecklistItem(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,11 +70,13 @@ export class MemStorage implements IStorage {
   private clients: Map<number, Client>;
   private kanbanStages: Map<number, KanbanStage>;
   private tasks: Map<number, Task>;
+  private checklistItems: Map<number, ChecklistItem>;
   private currentUserId: number;
   private currentEventId: number;
   private currentClientId: number;
   private currentStageId: number;
   private currentTaskId: number;
+  private currentChecklistItemId: number;
 
   constructor() {
     this.users = new Map();
@@ -73,11 +84,13 @@ export class MemStorage implements IStorage {
     this.clients = new Map();
     this.kanbanStages = new Map();
     this.tasks = new Map();
+    this.checklistItems = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
     this.currentClientId = 1;
     this.currentStageId = 1;
     this.currentTaskId = 1;
+    this.currentChecklistItemId = 1;
 
     // Create master admin user
     this.createMasterUser();
@@ -306,8 +319,7 @@ export class MemStorage implements IStorage {
 
     const updatedTask: Task = { 
       ...task, 
-      ...taskUpdate, 
-      updatedAt: new Date(),
+      ...taskUpdate,
     };
     this.tasks.set(id, updatedTask);
     return updatedTask;
