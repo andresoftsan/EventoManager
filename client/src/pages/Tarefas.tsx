@@ -22,16 +22,19 @@ import {
   insertTaskSchema, 
   type Task, 
   type Client, 
-  type KanbanStage
+  type KanbanStage,
+  type User
 } from "@shared/schema";
-
-type TaskFormData = z.infer<typeof taskFormSchema>;
 
 const taskFormSchema = insertTaskSchema.extend({
   clientId: z.number().min(1, "Cliente é obrigatório"),
   userId: z.number().min(1, "Usuário é obrigatório"),
   stageId: z.number().min(1, "Status é obrigatório"),
+  startDate: z.string().min(1, "Data de início é obrigatória"),
+  endDate: z.string().min(1, "Data de fim é obrigatória"),
 });
+
+type TaskFormData = z.infer<typeof taskFormSchema>;
 
 interface TaskWithDetails extends Task {
   userName: string;
@@ -83,10 +86,13 @@ export default function Tarefas() {
   // Mutations
   const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
-      return apiRequest('/api/tasks', {
+      const response = await fetch('/api/tasks', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Erro ao criar tarefa');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -108,10 +114,13 @@ export default function Tarefas() {
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: TaskFormData }) => {
-      return apiRequest(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Erro ao atualizar tarefa');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -134,9 +143,11 @@ export default function Tarefas() {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/${id}`, {
         method: 'DELETE',
       });
+      if (!response.ok) throw new Error('Erro ao deletar tarefa');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -282,7 +293,7 @@ export default function Tarefas() {
                     <span className="truncate">{task.clientName}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
+                    <UserIcon className="h-4 w-4" />
                     <span className="truncate">{task.userName}</span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -434,7 +445,7 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {users && users.map((user: User) => (
+                            {users && users.map((user: any) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
                                 {user.name}
                               </SelectItem>
