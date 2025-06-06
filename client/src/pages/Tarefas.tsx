@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, CheckSquare, Calendar, User, Building2, List } from "lucide-react";
+import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,19 +18,20 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import ChecklistTab from "@/components/ChecklistTab";
-import type { Task, Client, KanbanStage, User as UserType } from "@shared/schema";
-
-const taskFormSchema = z.object({
-  title: z.string().min(1, "Título é obrigatório"),
-  description: z.string().optional(),
-  startDate: z.string().min(1, "Data de início é obrigatória"),
-  endDate: z.string().min(1, "Data de término é obrigatória"),
-  clientId: z.number().min(1, "Cliente é obrigatório"),
-  userId: z.number().min(1, "Usuário responsável é obrigatório"),
-  stageId: z.number().min(1, "Etapa é obrigatória"),
-});
+import { 
+  insertTaskSchema, 
+  type Task, 
+  type Client, 
+  type KanbanStage
+} from "@shared/schema";
 
 type TaskFormData = z.infer<typeof taskFormSchema>;
+
+const taskFormSchema = insertTaskSchema.extend({
+  clientId: z.number().min(1, "Cliente é obrigatório"),
+  userId: z.number().min(1, "Usuário é obrigatório"),
+  stageId: z.number().min(1, "Status é obrigatório"),
+});
 
 interface TaskWithDetails extends Task {
   userName: string;
@@ -40,33 +41,32 @@ interface TaskWithDetails extends Task {
 
 export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<TaskWithDetails | undefined>();
-  const { data: authData } = useAuth();
+  const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const { toast } = useToast();
-
-  const isAdmin = authData?.user?.isAdmin;
+  const { user } = useAuth();
 
   // Queries
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ["/api/tasks"],
-    enabled: !!authData?.user,
+    queryKey: ['/api/tasks'],
+    enabled: !!user,
   });
 
   const { data: clients = [] } = useQuery({
-    queryKey: ["/api/clients"],
-    enabled: !!authData?.user,
-  });
-
-  const { data: stages = [] } = useQuery({
-    queryKey: ["/api/kanban-stages"],
-    enabled: !!authData?.user,
+    queryKey: ['/api/clients'],
+    enabled: !!user,
   });
 
   const { data: users = [] } = useQuery({
-    queryKey: ["/api/users"],
-    enabled: !!authData?.user && isAdmin,
+    queryKey: ['/api/users'],
+    enabled: !!user && user.isAdmin,
   });
 
+  const { data: stages = [] } = useQuery({
+    queryKey: ['/api/stages'],
+    enabled: !!user,
+  });
+
+  // Form
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -75,7 +75,7 @@ export default function Tarefas() {
       startDate: "",
       endDate: "",
       clientId: 0,
-      userId: authData?.user?.id || 0,
+      userId: 0,
       stageId: 0,
     },
   });
@@ -83,22 +83,24 @@ export default function Tarefas() {
   // Mutations
   const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
-      const response = await apiRequest("POST", "/api/tasks", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      form.reset();
-      setIsModalOpen(false);
-      toast({
-        title: "Sucesso",
-        description: "Tarefa criada com sucesso!",
+      return apiRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(data),
       });
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setIsModalOpen(false);
+      form.reset();
+      toast({
+        title: "Tarefa criada",
+        description: "A tarefa foi criada com sucesso.",
+      });
+    },
+    onError: () => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar tarefa",
+        description: "Erro ao criar tarefa. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -106,23 +108,25 @@ export default function Tarefas() {
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: TaskFormData }) => {
-      const response = await apiRequest("PUT", `/api/tasks/${id}`, data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      form.reset();
-      setIsModalOpen(false);
-      setEditingTask(undefined);
-      toast({
-        title: "Sucesso",
-        description: "Tarefa atualizada com sucesso!",
+      return apiRequest(`/api/tasks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
       });
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setIsModalOpen(false);
+      setEditingTask(null);
+      form.reset();
+      toast({
+        title: "Tarefa atualizada",
+        description: "A tarefa foi atualizada com sucesso.",
+      });
+    },
+    onError: () => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar tarefa",
+        description: "Erro ao atualizar tarefa. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -130,19 +134,21 @@ export default function Tarefas() {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/tasks/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      toast({
-        title: "Sucesso",
-        description: "Tarefa excluída com sucesso!",
+      return apiRequest(`/api/tasks/${id}`, {
+        method: 'DELETE',
       });
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      toast({
+        title: "Tarefa removida",
+        description: "A tarefa foi removida com sucesso.",
+      });
+    },
+    onError: () => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao excluir tarefa",
+        description: "Erro ao remover tarefa. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -150,9 +156,9 @@ export default function Tarefas() {
 
   const onSubmit = async (data: TaskFormData) => {
     if (editingTask) {
-      await updateTaskMutation.mutateAsync({ id: editingTask.id, data });
+      updateTaskMutation.mutate({ id: editingTask.id, data });
     } else {
-      await createTaskMutation.mutateAsync(data);
+      createTaskMutation.mutate(data);
     }
   };
 
@@ -161,8 +167,8 @@ export default function Tarefas() {
     form.reset({
       title: task.title,
       description: task.description || "",
-      startDate: format(new Date(task.startDate), "yyyy-MM-dd"),
-      endDate: format(new Date(task.endDate), "yyyy-MM-dd"),
+      startDate: task.startDate,
+      endDate: task.endDate,
       clientId: task.clientId,
       userId: task.userId,
       stageId: task.stageId,
@@ -170,33 +176,34 @@ export default function Tarefas() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir esta tarefa?")) {
-      deleteTaskMutation.mutate(id);
-    }
-  };
-
   const handleNewTask = () => {
-    setEditingTask(undefined);
+    setEditingTask(null);
     form.reset({
       title: "",
       description: "",
       startDate: "",
       endDate: "",
       clientId: 0,
-      userId: authData?.user?.id || 0,
-      stageId: stages[0]?.id || 0,
+      userId: 0,
+      stageId: 0,
     });
     setIsModalOpen(true);
   };
 
-  const getStatusColor = (stageName: string) => {
-    switch (stageName.toLowerCase()) {
-      case "a fazer":
+  const handleDelete = (id: number) => {
+    if (confirm("Tem certeza que deseja remover esta tarefa?")) {
+      deleteTaskMutation.mutate(id);
+    }
+  };
+
+  // Helper function for status colors
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pendente":
         return "bg-gray-100 text-gray-800";
-      case "em progresso":
+      case "em andamento":
         return "bg-blue-100 text-blue-800";
-      case "em revisão":
+      case "revisão":
         return "bg-yellow-100 text-yellow-800";
       case "concluído":
         return "bg-green-100 text-green-800";
@@ -232,7 +239,7 @@ export default function Tarefas() {
               </CardContent>
             </Card>
           ))
-        ) : tasks.length > 0 ? (
+        ) : tasks && tasks.length > 0 ? (
           tasks.map((task: TaskWithDetails) => (
             <Card key={task.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4 lg:p-6">
@@ -252,7 +259,7 @@ export default function Tarefas() {
                       onClick={() => handleEdit(task)}
                       className="h-8 w-8 p-0"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -260,18 +267,16 @@ export default function Tarefas() {
                       onClick={() => handleDelete(task.id)}
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
-
                 {task.description && (
-                  <p className="text-xs lg:text-sm text-gray-600 mb-4 line-clamp-2">
+                  <p className="text-gray-600 text-xs lg:text-sm mb-3 line-clamp-2">
                     {task.description}
                   </p>
                 )}
-
-                <div className="space-y-2 text-xs lg:text-sm text-gray-600">
+                <div className="space-y-2 text-xs lg:text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
                     <Building2 className="h-4 w-4" />
                     <span className="truncate">{task.clientName}</span>
@@ -328,157 +333,164 @@ export default function Tarefas() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Nome da tarefa" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} placeholder="Descreva a tarefa (opcional)" rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Início *</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Término *</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="clientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente *</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o cliente" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.map((client: Client) => (
-                          <SelectItem key={client.id} value={client.id.toString()}>
-                            {client.razaoSocial}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {isAdmin && (
-                <FormField
-                  control={form.control}
-                  name="userId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Usuário Responsável *</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Título *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o usuário" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="Nome da tarefa" />
                         </FormControl>
-                        <SelectContent>
-                          {users.map((user: UserType) => (
-                            <SelectItem key={user.id} value={user.id.toString()}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="stageId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Etapa *</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a etapa" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {stages.map((stage: KanbanStage) => (
-                          <SelectItem key={stage.id} value={stage.id.toString()}>
-                            {stage.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Descreva a tarefa (opcional)" rows={3} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
-                >
-                  {editingTask ? "Atualizar" : "Criar"}
-                </Button>
-              </div>
-            </form>
-          </Form>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data de Início *</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data de Fim *</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="clientId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cliente *</FormLabel>
+                        <Select
+                          value={field.value ? field.value.toString() : ""}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o cliente" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {clients && clients.map((client: Client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="userId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Responsável *</FormLabel>
+                        <Select
+                          value={field.value ? field.value.toString() : ""}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o responsável" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {users && users.map((user: User) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="stageId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status *</FormLabel>
+                        <Select
+                          value={field.value ? field.value.toString() : ""}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {stages && stages.map((stage: KanbanStage) => (
+                              <SelectItem key={stage.id} value={stage.id.toString()}>
+                                {stage.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
+                    >
+                      {editingTask ? "Atualizar" : "Criar"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </TabsContent>
 
             <TabsContent value="checklist" className="space-y-4">
