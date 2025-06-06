@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import ChecklistTab from "@/components/ChecklistTab";
+import TempChecklistTab from "@/components/TempChecklistTab";
 import { 
   insertTaskSchema, 
   type Task, 
@@ -42,9 +43,16 @@ interface TaskWithDetails extends Task {
   stageName: string;
 }
 
+interface TempChecklistItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
+  const [tempChecklistItems, setTempChecklistItems] = useState<TempChecklistItem[]>([]);
   const { toast } = useToast();
   const authQuery = useAuth();
 
@@ -61,13 +69,9 @@ export default function Tarefas() {
     queryKey: ['/api/users'],
   });
 
-  const { data: stages = [], isLoading: stagesLoading, error: stagesError } = useQuery({
+  const { data: stages = [], isLoading: stagesLoading } = useQuery({
     queryKey: ['/api/kanban-stages'],
   });
-  
-  console.log('Stages data:', stages);
-  console.log('Stages loading:', stagesLoading);
-  console.log('Stages error:', stagesError);
 
   // Form
   const form = useForm<TaskFormData>({
@@ -92,11 +96,30 @@ export default function Tarefas() {
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Erro ao criar tarefa');
-      return response.json();
+      const task = await response.json();
+      
+      // Salvar itens do checklist temporário se existirem
+      if (tempChecklistItems.length > 0) {
+        for (const item of tempChecklistItems) {
+          await fetch('/api/checklist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              taskId: task.id,
+              title: item.title,
+              completed: item.completed,
+              order: tempChecklistItems.indexOf(item) + 1,
+            }),
+          });
+        }
+      }
+      
+      return task;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       setIsModalOpen(false);
+      setTempChecklistItems([]);
       form.reset();
       toast({
         title: "Tarefa criada",
@@ -189,6 +212,7 @@ export default function Tarefas() {
 
   const handleNewTask = () => {
     setEditingTask(null);
+    setTempChecklistItems([]);
     form.reset({
       title: "",
       description: "",
@@ -508,11 +532,10 @@ export default function Tarefas() {
               {editingTask ? (
                 <ChecklistTab taskId={editingTask.id} />
               ) : (
-                <div className="text-center py-8">
-                  <List className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Checklist não disponível</h3>
-                  <p className="text-gray-500">Salve a tarefa primeiro para poder gerenciar o checklist</p>
-                </div>
+                <TempChecklistTab 
+                  items={tempChecklistItems}
+                  onItemsChange={setTempChecklistItems}
+                />
               )}
             </TabsContent>
           </Tabs>
