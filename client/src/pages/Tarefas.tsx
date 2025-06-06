@@ -46,7 +46,8 @@ export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const { toast } = useToast();
-  const { user: authUser } = useAuth();
+  const authResult = useAuth();
+  const authUser = authResult?.user;
 
   // Queries
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
@@ -250,7 +251,7 @@ export default function Tarefas() {
               </CardContent>
             </Card>
           ))
-        ) : tasks && tasks.length > 0 ? (
+        ) : Array.isArray(tasks) && tasks.length > 0 ? (
           tasks.map((task: TaskWithDetails) => (
             <Card key={task.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4 lg:p-6">
@@ -364,7 +365,7 @@ export default function Tarefas() {
                       <FormItem>
                         <FormLabel>Descrição</FormLabel>
                         <FormControl>
-                          <Textarea {...field} placeholder="Descreva a tarefa (opcional)" rows={3} />
+                          <Textarea {...field} value={field.value || ""} placeholder="Descreva a tarefa (opcional)" rows={3} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -417,7 +418,7 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {clients && clients.map((client: any) => (
+                            {Array.isArray(clients) && clients.map((client: any) => (
                               <SelectItem key={client.id} value={client.id.toString()}>
                                 {client.razaoSocial}
                               </SelectItem>
@@ -445,7 +446,7 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {users && users.map((user: any) => (
+                            {Array.isArray(users) && users.map((user: any) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
                                 {user.name}
                               </SelectItem>
@@ -473,7 +474,7 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {stages && stages.map((stage: KanbanStage) => (
+                            {Array.isArray(stages) && stages.map((stage: any) => (
                               <SelectItem key={stage.id} value={stage.id.toString()}>
                                 {stage.name}
                               </SelectItem>
