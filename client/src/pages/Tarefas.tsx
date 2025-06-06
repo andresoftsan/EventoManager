@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, CheckSquare, Calendar, User, Building2 } from "lucide-react";
+import { Plus, Edit, Trash2, CheckSquare, Calendar, User, Building2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
+import ChecklistTab from "@/components/ChecklistTab";
 import type { Task, Client, KanbanStage, User as UserType } from "@shared/schema";
 
 const taskFormSchema = z.object({
@@ -303,15 +305,29 @@ export default function Tarefas() {
 
       {/* Modal de Cadastro/Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingTask ? "Editar Tarefa" : "Nova Tarefa"}
             </DialogTitle>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
+          
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <Edit size={16} />
+                Detalhes
+              </TabsTrigger>
+              <TabsTrigger value="checklist" className="flex items-center gap-2" disabled={!editingTask}>
+                <List size={16} />
+                Checklist
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" className="space-y-4">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
@@ -463,6 +479,14 @@ export default function Tarefas() {
               </div>
             </form>
           </Form>
+            </TabsContent>
+
+            <TabsContent value="checklist" className="space-y-4">
+              {editingTask && (
+                <ChecklistTab taskId={editingTask.id} />
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
