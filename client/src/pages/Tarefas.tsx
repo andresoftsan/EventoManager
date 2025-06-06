@@ -46,27 +46,27 @@ export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
 
   // Queries
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['/api/tasks'],
-    enabled: !!user,
+    enabled: !!authUser,
   });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients'],
-    enabled: !!user,
+    enabled: !!authUser,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
-    enabled: !!user && user.isAdmin,
+    enabled: !!authUser?.isAdmin,
   });
 
   const { data: stages = [] } = useQuery({
     queryKey: ['/api/stages'],
-    enabled: !!user,
+    enabled: !!authUser,
   });
 
   // Form
@@ -178,8 +178,8 @@ export default function Tarefas() {
     form.reset({
       title: task.title,
       description: task.description || "",
-      startDate: task.startDate,
-      endDate: task.endDate,
+      startDate: typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString().split('T')[0],
+      endDate: typeof task.endDate === 'string' ? task.endDate : task.endDate.toISOString().split('T')[0],
       clientId: task.clientId,
       userId: task.userId,
       stageId: task.stageId,
@@ -417,9 +417,9 @@ export default function Tarefas() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {clients && clients.map((client: Client) => (
+                            {clients && clients.map((client: any) => (
                               <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.name}
+                                {client.razaoSocial}
                               </SelectItem>
                             ))}
                           </SelectContent>
