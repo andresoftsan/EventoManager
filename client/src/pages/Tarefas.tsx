@@ -66,7 +66,7 @@ export default function Tarefas() {
   });
 
   const { data: stages = [] } = useQuery({
-    queryKey: ['/api/stages'],
+    queryKey: ['/api/kanban-stages'],
     enabled: !!authUser,
   });
 
@@ -335,7 +335,7 @@ export default function Tarefas() {
                 <Edit size={16} />
                 Detalhes
               </TabsTrigger>
-              <TabsTrigger value="checklist" className="flex items-center gap-2" disabled={!editingTask}>
+              <TabsTrigger value="checklist" className="flex items-center gap-2">
                 <List size={16} />
                 Checklist
               </TabsTrigger>
@@ -506,8 +506,14 @@ export default function Tarefas() {
             </TabsContent>
 
             <TabsContent value="checklist" className="space-y-4">
-              {editingTask && (
+              {editingTask ? (
                 <ChecklistTab taskId={editingTask.id} />
+              ) : (
+                <div className="text-center py-8">
+                  <List className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Checklist não disponível</h3>
+                  <p className="text-gray-500">Salve a tarefa primeiro para poder gerenciar o checklist</p>
+                </div>
               )}
             </TabsContent>
           </Tabs>
