@@ -101,11 +101,10 @@ export default function Tarefas() {
       // Salvar itens do checklist temporário se existirem
       if (tempChecklistItems.length > 0) {
         for (const item of tempChecklistItems) {
-          await fetch('/api/checklist', {
+          await fetch(`/api/tasks/${task.id}/checklist`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              taskId: task.id,
               title: item.title,
               completed: item.completed,
               order: tempChecklistItems.indexOf(item) + 1,
@@ -198,11 +197,19 @@ export default function Tarefas() {
 
   const handleEdit = (task: TaskWithDetails) => {
     setEditingTask(task);
+    setTempChecklistItems([]); // Reset temp items when editing
+    
+    // Format dates properly for input fields
+    const formatDateForInput = (dateValue: string | Date) => {
+      const date = new Date(dateValue);
+      return date.toISOString().split('T')[0];
+    };
+    
     form.reset({
       title: task.title,
       description: task.description || "",
-      startDate: typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString().split('T')[0],
-      endDate: typeof task.endDate === 'string' ? task.endDate : task.endDate.toISOString().split('T')[0],
+      startDate: formatDateForInput(task.startDate.toString()),
+      endDate: formatDateForInput(task.endDate.toString()),
       clientId: task.clientId,
       userId: task.userId,
       stageId: task.stageId,
