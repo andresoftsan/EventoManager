@@ -298,8 +298,8 @@ export default function Tarefas() {
               </CardContent>
             </Card>
           ))
-        ) : Array.isArray(tasks) && tasks.length > 0 ? (
-          tasks.map((task: TaskWithDetails) => (
+        ) : Array.isArray(filteredTasks) && filteredTasks.length > 0 ? (
+          filteredTasks.map((task: TaskWithDetails) => (
             <Card key={task.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -357,12 +357,34 @@ export default function Tarefas() {
         ) : (
           <div className="col-span-full text-center py-12">
             <CheckSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
-            <p className="text-gray-500 mb-4">Comece criando sua primeira tarefa</p>
-            <Button onClick={handleNewTask}>
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Tarefa
-            </Button>
+            {searchTerm ? (
+              <>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
+                <p className="text-gray-500 mb-4">
+                  Não encontramos tarefas com o termo "{searchTerm}"
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchTerm("")}
+                  className="mr-2"
+                >
+                  Limpar busca
+                </Button>
+                <Button onClick={handleNewTask}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Tarefa
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
+                <p className="text-gray-500 mb-4">Comece criando sua primeira tarefa</p>
+                <Button onClick={handleNewTask}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Tarefa
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
