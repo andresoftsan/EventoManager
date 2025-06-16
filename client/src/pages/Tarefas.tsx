@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List } from "lucide-react";
+import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,11 +53,12 @@ export default function Tarefas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const [tempChecklistItems, setTempChecklistItems] = useState<TempChecklistItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
   const authQuery = useAuth();
 
   // Queries
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks'],
   });
 
@@ -238,6 +239,11 @@ export default function Tarefas() {
     }
   };
 
+  // Filter tasks by search term
+  const filteredTasks = tasks.filter((task: TaskWithDetails) =>
+    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Helper function for status colors
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -265,6 +271,17 @@ export default function Tarefas() {
           <Plus className="h-4 w-4 mr-2" />
           Nova Tarefa
         </Button>
+      </div>
+
+      {/* Campo de Busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Buscar tarefas por título..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Lista de Tarefas */}
