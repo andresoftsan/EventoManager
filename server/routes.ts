@@ -483,8 +483,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taskData = insertTaskSchema.parse({
         ...req.body,
         userId: targetUserId,
-        startDate: new Date(req.body.startDate),
-        endDate: new Date(req.body.endDate)
+        startDate: req.body.startDate,
+        endDate: req.body.endDate
       });
 
       const task = await storage.createTask(taskData);
@@ -514,12 +514,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updateData = { ...req.body };
-      if (updateData.startDate) {
-        updateData.startDate = new Date(updateData.startDate);
-      }
-      if (updateData.endDate) {
-        updateData.endDate = new Date(updateData.endDate);
-      }
 
       const taskData = insertTaskSchema.partial().parse(updateData);
       const updatedTask = await storage.updateTask(id, taskData);
