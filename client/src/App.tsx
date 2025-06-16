@@ -14,6 +14,7 @@ import Tarefas from "@/pages/Tarefas";
 import Kanban from "@/pages/Kanban";
 import Sprints from "@/pages/Sprints";
 import Clientes from "@/pages/Clientes";
+import Empresas from "@/pages/Empresas";
 import Configuracoes from "@/pages/Configuracoes";
 import NotFound from "@/pages/not-found";
 

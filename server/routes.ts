@@ -7,6 +7,7 @@ import {
   insertUserSchema, 
   insertEventSchema,
   insertClientSchema,
+  insertCompanySchema,
   insertKanbanStageSchema,
   insertTaskSchema,
   insertChecklistItemSchema
@@ -368,6 +369,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Cliente excluído com sucesso" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao excluir cliente" });
+    }
+  });
+
+  // ===== COMPANIES ROUTES =====
+  
+  // Get all companies
+  app.get("/api/companies", requireAuth, async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      res.json(companies);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar empresas" });
+    }
+  });
+
+  // Create company (admin only)
+  app.post("/api/companies", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const companyData = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(companyData);
+      res.status(201).json(company);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar empresa" });
+    }
+  });
+
+  // Update company (admin only)
+  app.put("/api/companies/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const companyData = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(id, companyData);
+      
+      if (!company) {
+        return res.status(404).json({ message: "Empresa não encontrada" });
+      }
+      
+      res.json(company);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar empresa" });
+    }
+  });
+
+  // Delete company (admin only)
+  app.delete("/api/companies/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCompany(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Empresa não encontrada" });
+      }
+      
+      res.json({ message: "Empresa excluída com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir empresa" });
     }
   });
 

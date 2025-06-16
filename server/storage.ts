@@ -94,12 +94,14 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.events = new Map();
     this.clients = new Map();
+    this.companies = new Map();
     this.kanbanStages = new Map();
     this.tasks = new Map();
     this.checklistItems = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
     this.currentClientId = 1;
+    this.currentCompanyId = 1;
     this.currentStageId = 1;
     this.currentTaskId = 1;
     this.currentChecklistItemId = 1;
@@ -264,6 +266,39 @@ export class MemStorage implements IStorage {
 
   async deleteClient(id: number): Promise<boolean> {
     return this.clients.delete(id);
+  }
+
+  // Company methods
+  async getCompany(id: number): Promise<Company | undefined> {
+    return this.companies.get(id);
+  }
+
+  async getAllCompanies(): Promise<Company[]> {
+    return Array.from(this.companies.values());
+  }
+
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const id = this.currentCompanyId++;
+    const company: Company = { 
+      ...insertCompany,
+      id, 
+      createdAt: new Date(),
+    };
+    this.companies.set(id, company);
+    return company;
+  }
+
+  async updateCompany(id: number, companyUpdate: Partial<InsertCompany>): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    if (!company) return undefined;
+
+    const updatedCompany: Company = { ...company, ...companyUpdate };
+    this.companies.set(id, updatedCompany);
+    return updatedCompany;
+  }
+
+  async deleteCompany(id: number): Promise<boolean> {
+    return this.companies.delete(id);
   }
 
   // Kanban Stage methods
