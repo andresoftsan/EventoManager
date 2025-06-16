@@ -54,6 +54,8 @@ export default function Tarefas() {
   const [editingTask, setEditingTask] = useState<TaskWithDetails | null>(null);
   const [tempChecklistItems, setTempChecklistItems] = useState<TempChecklistItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const { toast } = useToast();
   const authQuery = useAuth();
 
@@ -239,10 +241,19 @@ export default function Tarefas() {
     }
   };
 
-  // Filter tasks by search term
-  const filteredTasks = tasks.filter((task: TaskWithDetails) =>
-    task.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter tasks by search term and date range
+  const filteredTasks = tasks.filter((task: TaskWithDetails) => {
+    // Filter by title
+    const matchesTitle = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by start date
+    const matchesStartDate = !startDateFilter || task.startDate >= startDateFilter;
+    
+    // Filter by end date
+    const matchesEndDate = !endDateFilter || task.endDate <= endDateFilter;
+    
+    return matchesTitle && matchesStartDate && matchesEndDate;
+  });
 
   // Helper function to format dates correctly (avoiding timezone issues)
   const formatTaskDate = (dateValue: string | Date) => {
@@ -306,15 +317,57 @@ export default function Tarefas() {
         </Button>
       </div>
 
-      {/* Campo de Busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          placeholder="Buscar tarefas por título..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Filtros */}
+      <div className="space-y-4">
+        {/* Campo de Busca */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Buscar tarefas por título..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filtros de Data */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Data Inicial (a partir de)
+            </label>
+            <Input
+              type="date"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+              placeholder="Filtrar por data inicial"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Data Final (até)
+            </label>
+            <Input
+              type="date"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+              placeholder="Filtrar por data final"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm("");
+                setStartDateFilter("");
+                setEndDateFilter("");
+              }}
+              className="w-full"
+            >
+              Limpar Filtros
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Lista de Tarefas */}
@@ -390,18 +443,22 @@ export default function Tarefas() {
         ) : (
           <div className="col-span-full text-center py-12">
             <CheckSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            {searchTerm ? (
+            {searchTerm || startDateFilter || endDateFilter ? (
               <>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
                 <p className="text-gray-500 mb-4">
-                  Não encontramos tarefas com o termo "{searchTerm}"
+                  Não encontramos tarefas com os filtros aplicados
                 </p>
                 <Button 
                   variant="outline" 
-                  onClick={() => setSearchTerm("")}
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStartDateFilter("");
+                    setEndDateFilter("");
+                  }}
                   className="mr-2"
                 >
-                  Limpar busca
+                  Limpar Filtros
                 </Button>
                 <Button onClick={handleNewTask}>
                   <Plus className="h-4 w-4 mr-2" />
