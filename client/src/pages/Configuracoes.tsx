@@ -264,31 +264,31 @@ export default function Configuracoes() {
                           <div className="space-y-2">
                             {Array.isArray(companies) && companies.length > 0 ? (
                               companies.map((company: any) => (
-                              <div key={company.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  checked={field.value?.includes(company.id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      field.onChange([...(field.value || []), company.id]);
-                                    } else {
-                                      field.onChange(field.value?.filter((id: number) => id !== company.id) || []);
-                                    }
-                                  }}
-                                  disabled={isSubmitting}
-                                />
-                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                  {company.nome}
-                                </label>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-gray-500">Nenhuma empresa cadastrada</p>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                                <div key={company.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    checked={field.value?.includes(company.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        field.onChange([...(field.value || []), company.id]);
+                                      } else {
+                                        field.onChange(field.value?.filter((id: number) => id !== company.id) || []);
+                                      }
+                                    }}
+                                    disabled={isSubmitting}
+                                  />
+                                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    {company.nome}
+                                  </label>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500">Nenhuma empresa cadastrada</p>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
                   
                   <Button 
@@ -353,7 +353,7 @@ export default function Configuracoes() {
                         {user.companyIds && user.companyIds.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {user.companyIds.map((companyId: number) => {
-                              const company = companies.find((c: any) => c.id === companyId);
+                              const company = Array.isArray(companies) ? companies.find((c: any) => c.id === companyId) : null;
                               return company ? (
                                 <Badge key={companyId} variant="outline" className="text-xs">
                                   {company.nome}
