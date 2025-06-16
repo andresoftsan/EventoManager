@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Settings, Menu, X, CheckSquare, Users, Layers, Briefcase } from "lucide-react";
+import { BarChart3, Calendar, Settings, Menu, X, CheckSquare, Users, Layers, Briefcase, Building2 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
     { path: "/kanban", icon: Layers, label: "Kanban" },
     { path: "/sprints", icon: Briefcase, label: "Sprints" },
     { path: "/clientes", icon: Users, label: "Clientes" },
+    { path: "/empresas", icon: Building2, label: "Empresas" },
     { path: "/configuracoes", icon: Settings, label: "Configurações" },
   ];
 

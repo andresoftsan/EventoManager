@@ -50,7 +50,7 @@ function AppContent() {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50" />;
   }
 
-  if (error || !authData?.user) {
+  if (error || !(authData as any)?.user) {
     return <Login />;
   }
 
