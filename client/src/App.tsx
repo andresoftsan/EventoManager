@@ -33,6 +33,7 @@ function AuthenticatedApp() {
             <Route path="/kanban" component={() => <Kanban />} />
             <Route path="/sprints" component={() => <Sprints />} />
             <Route path="/clientes" component={() => <Clientes />} />
+            <Route path="/empresas" component={() => <Empresas />} />
             <Route path="/configuracoes" component={() => <Configuracoes />} />
             <Route component={NotFound} />
           </Switch>

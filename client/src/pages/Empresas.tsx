@@ -44,11 +44,7 @@ export default function Empresas() {
   // Mutations
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
-      const response = await apiRequest('/api/companies', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      return response.json();
+      return await apiRequest('POST', '/api/companies', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
@@ -70,11 +66,7 @@ export default function Empresas() {
 
   const updateCompanyMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: CompanyFormData }) => {
-      const response = await apiRequest(`/api/companies/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-      return response.json();
+      return await apiRequest('PUT', `/api/companies/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
@@ -97,10 +89,7 @@ export default function Empresas() {
 
   const deleteCompanyMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest(`/api/companies/${id}`, {
-        method: 'DELETE',
-      });
-      return response.json();
+      return await apiRequest('DELETE', `/api/companies/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
@@ -157,7 +146,7 @@ export default function Empresas() {
     return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
   };
 
-  if (!authQuery.data?.user?.isAdmin) {
+  if (!authQuery.data || !(authQuery.data as any)?.user?.isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
