@@ -374,8 +374,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== COMPANIES ROUTES =====
   
-  // Get all companies
-  app.get("/api/companies", requireAuth, async (req, res) => {
+  // Get all companies (admin only)
+  app.get("/api/companies", requireAuth, requireAdmin, async (req, res) => {
     try {
       const companies = await storage.getAllCompanies();
       res.json(companies);

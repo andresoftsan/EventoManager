@@ -152,7 +152,8 @@ export default function Empresas() {
         <div className="text-center">
           <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Acesso Restrito</h3>
-          <p className="text-gray-500">Apenas administradores podem gerenciar empresas.</p>
+          <p className="text-gray-500 mb-4">Apenas o usuário admin pode gerenciar empresas.</p>
+          <p className="text-sm text-gray-400">Entre em contato com o administrador do sistema para solicitar acesso.</p>
         </div>
       </div>
     );

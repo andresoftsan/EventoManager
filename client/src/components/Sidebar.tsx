@@ -2,6 +2,7 @@ import { BarChart3, Calendar, Settings, Menu, X, CheckSquare, Users, Layers, Bri
 import { useLocation, Link } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 
 interface SidebarProps {
   className?: string;
@@ -10,15 +11,25 @@ interface SidebarProps {
 export default function Sidebar({ className = "" }: SidebarProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: authData } = useAuth();
+  const isAdmin = (authData as any)?.user?.isAdmin;
 
-  const menuItems = [
+  const baseMenuItems = [
     { path: "/dashboard", icon: BarChart3, label: "Dashboard" },
     { path: "/agenda", icon: Calendar, label: "Agenda" },
     { path: "/tarefas", icon: CheckSquare, label: "Tarefas" },
     { path: "/kanban", icon: Layers, label: "Kanban" },
     { path: "/sprints", icon: Briefcase, label: "Sprints" },
     { path: "/clientes", icon: Users, label: "Clientes" },
+  ];
+
+  const adminMenuItems = [
     { path: "/empresas", icon: Building2, label: "Empresas" },
+  ];
+
+  const menuItems = [
+    ...baseMenuItems,
+    ...(isAdmin ? adminMenuItems : []),
     { path: "/configuracoes", icon: Settings, label: "Configurações" },
   ];
 

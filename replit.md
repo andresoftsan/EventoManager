@@ -124,7 +124,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - Backup and recovery through platform-specific tools
 
 ## Changelog
-- June 16, 2025. Initial setup
+- June 16, 2025: Initial setup
+- June 16, 2025: Added Companies module with admin-only access restrictions
+- June 16, 2025: Implemented user-company linking functionality with multi-selection in user creation form
 
 ## User Preferences
 
