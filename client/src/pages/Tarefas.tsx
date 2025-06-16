@@ -244,26 +244,33 @@ export default function Tarefas() {
     task.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper function to format dates correctly
+  // Helper function to format dates correctly (avoiding timezone issues)
   const formatTaskDate = (dateValue: string | Date) => {
     try {
-      // Converte para string se for Date
-      const dateString = typeof dateValue === 'string' ? dateValue : dateValue.toISOString().split('T')[0];
+      let dateString: string;
       
-      // Se é apenas data (YYYY-MM-DD), processe localmente para evitar problemas de timezone
+      if (typeof dateValue === 'string') {
+        dateString = dateValue;
+      } else {
+        // Se for Date, converte para string local
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        dateString = `${year}-${month}-${day}`;
+      }
+      
+      // Processa datas no formato YYYY-MM-DD diretamente (sem conversão Date)
       if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const [year, month, day] = dateString.split('-');
         return `${day}/${month}/${year}`;
       }
-      // Se contém horário, use date-fns
+      
+      // Para outros formatos, tenta conversão
       if (dateString.includes('T')) {
-        return format(new Date(dateString), "dd/MM/yyyy");
-      }
-      // Fallback manual
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
+        const date = new Date(dateString);
         return format(date, "dd/MM/yyyy");
       }
+      
       return dateString;
     } catch (error) {
       return typeof dateValue === 'string' ? dateValue : 'Data inválida';
