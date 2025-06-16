@@ -28,7 +28,7 @@ const userFormSchema = z.object({
   username: z.string().min(1, "Usuário é obrigatório"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   isAdmin: z.boolean(),
-  companyIds: z.array(z.number()).optional().default([]),
+  companyIds: z.array(z.number()).min(1, "Pelo menos uma empresa deve ser selecionada"),
 });
 
 type UserFormData = z.infer<typeof userFormSchema>;
@@ -45,6 +45,7 @@ interface UserWithoutPassword {
 
 export default function Configuracoes() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: authData } = useAuth();
@@ -78,6 +79,7 @@ export default function Configuracoes() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       form.reset();
+      setEditingUser(null);
       toast({
         title: "Sucesso",
         description: "Usuário cadastrado com sucesso!",
@@ -87,6 +89,30 @@ export default function Configuracoes() {
       toast({
         title: "Erro",
         description: error.message || "Erro ao cadastrar usuário",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<UserFormData> }) => {
+      const response = await apiRequest("PUT", `/api/users/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      form.reset();
+      setEditingUser(null);
+      toast({
+        title: "Sucesso",
+        description: "Usuário atualizado com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar usuário",
         variant: "destructive",
       });
     },
@@ -116,10 +142,38 @@ export default function Configuracoes() {
   const onSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
-      await createUserMutation.mutateAsync(data);
+      if (editingUser) {
+        await updateUserMutation.mutateAsync({ id: editingUser.id, data });
+      } else {
+        await createUserMutation.mutateAsync(data);
+      }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditUser = (user: UserWithoutPassword) => {
+    setEditingUser(user);
+    form.reset({
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      password: "", // Always empty for security
+      isAdmin: user.isAdmin,
+      companyIds: user.companyIds || [],
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    form.reset({
+      name: "",
+      email: "",
+      username: "",
+      password: "",
+      isAdmin: false,
+      companyIds: [],
+    });
   };
 
   const handleDeleteUser = (id: number, username: string) => {

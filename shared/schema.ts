@@ -74,7 +74,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
 }).extend({
-  companyIds: z.array(z.number()).optional().default([]),
+  companyIds: z.array(z.number()).min(1, "Pelo menos uma empresa deve ser selecionada"),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({
