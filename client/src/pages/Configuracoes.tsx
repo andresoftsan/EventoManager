@@ -156,11 +156,6 @@ export default function Configuracoes() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {!isAdmin ? (
-              <div className="text-center text-gray-500 py-8">
-                <p>Apenas administradores podem cadastrar novos usuários.</p>
-              </div>
-            ) : (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -237,35 +232,38 @@ export default function Configuracoes() {
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="isAdmin"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Usuário Administrador</FormLabel>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isAdmin && (
+                    <FormField
+                      control={form.control}
+                      name="isAdmin"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Usuário Administrador</FormLabel>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
-                  <FormField
-                    control={form.control}
-                    name="companyIds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Empresas Vinculadas</FormLabel>
-                        <div className="space-y-2">
-                          {companies.length > 0 ? (
-                            companies.map((company: any) => (
+                  {isAdmin && (
+                    <FormField
+                      control={form.control}
+                      name="companyIds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Empresas Vinculadas</FormLabel>
+                          <div className="space-y-2">
+                            {Array.isArray(companies) && companies.length > 0 ? (
+                              companies.map((company: any) => (
                               <div key={company.id} className="flex items-center space-x-2">
                                 <Checkbox
                                   checked={field.value?.includes(company.id)}
@@ -291,6 +289,7 @@ export default function Configuracoes() {
                       </FormItem>
                     )}
                   />
+                  )}
                   
                   <Button 
                     type="submit" 
@@ -301,7 +300,6 @@ export default function Configuracoes() {
                   </Button>
                 </form>
               </Form>
-            )}
           </CardContent>
         </Card>
 
