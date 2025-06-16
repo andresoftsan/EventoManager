@@ -33,6 +33,13 @@ export const clients = pgTable("clients", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  nome: text("nome").notNull(),
+  cnpj: text("cnpj").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const kanbanStages = pgTable("kanban_stages", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -77,6 +84,11 @@ export const insertClientSchema = createInsertSchema(clients).omit({
   createdAt: true,
 });
 
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertKanbanStageSchema = createInsertSchema(kanbanStages).omit({
   id: true,
   createdAt: true,
@@ -99,6 +111,8 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Client = typeof clients.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
 export type InsertKanbanStage = z.infer<typeof insertKanbanStageSchema>;
 export type KanbanStage = typeof kanbanStages.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;

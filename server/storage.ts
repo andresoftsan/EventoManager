@@ -2,6 +2,7 @@ import {
   users, 
   events, 
   clients, 
+  companies,
   kanbanStages, 
   tasks,
   checklistItems,
@@ -11,6 +12,8 @@ import {
   type InsertEvent,
   type Client,
   type InsertClient,
+  type Company,
+  type InsertCompany,
   type KanbanStage,
   type InsertKanbanStage,
   type Task,
@@ -42,6 +45,13 @@ export interface IStorage {
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: number): Promise<boolean>;
 
+  // Company methods
+  getCompany(id: number): Promise<Company | undefined>;
+  getAllCompanies(): Promise<Company[]>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company | undefined>;
+  deleteCompany(id: number): Promise<boolean>;
+
   // Kanban Stage methods
   getKanbanStage(id: number): Promise<KanbanStage | undefined>;
   getAllKanbanStages(): Promise<KanbanStage[]>;
@@ -68,12 +78,14 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private events: Map<number, Event>;
   private clients: Map<number, Client>;
+  private companies: Map<number, Company>;
   private kanbanStages: Map<number, KanbanStage>;
   private tasks: Map<number, Task>;
   private checklistItems: Map<number, ChecklistItem>;
   private currentUserId: number;
   private currentEventId: number;
   private currentClientId: number;
+  private currentCompanyId: number;
   private currentStageId: number;
   private currentTaskId: number;
   private currentChecklistItemId: number;
