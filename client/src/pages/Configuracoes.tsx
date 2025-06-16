@@ -28,6 +28,7 @@ const userFormSchema = z.object({
   username: z.string().min(1, "Usuário é obrigatório"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   isAdmin: z.boolean(),
+  companyIds: z.array(z.number()).optional().default([]),
 });
 
 type UserFormData = z.infer<typeof userFormSchema>;

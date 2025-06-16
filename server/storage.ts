@@ -119,6 +119,7 @@ export class MemStorage implements IStorage {
       name: "Administrador Master",
       email: "admin@sistema.com",
       isAdmin: true,
+      companyIds: [],
       createdAt: new Date(),
     };
     this.users.set(masterUser.id, masterUser);
@@ -174,6 +175,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       isAdmin: insertUser.isAdmin || false,
+      companyIds: insertUser.companyIds || [],
       createdAt: new Date(),
     };
     this.users.set(id, user);

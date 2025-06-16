@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
+  companyIds: integer("company_ids").array().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -72,6 +73,8 @@ export const checklistItems = pgTable("checklist_items", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+}).extend({
+  companyIds: z.array(z.number()).optional().default([]),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({
