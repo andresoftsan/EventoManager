@@ -99,7 +99,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
+      const currentUser = await storage.getUser(req.session.userId!);
+      let users;
+      
+      if (currentUser?.isAdmin) {
+        // Admin users see only users who share at least one company
+        const allUsers = await storage.getAllUsers();
+        
+        users = allUsers.filter(user => {
+          // Always include the current user
+          if (user.id === currentUser.id) return true;
+          
+          // Check if admin and user share at least one company
+          const adminCompanies = currentUser.companyIds || [];
+          const userCompanies = user.companyIds || [];
+          const hasSharedCompany = adminCompanies.some(companyId => 
+            userCompanies.includes(companyId)
+          );
+          
+          return hasSharedCompany;
+        });
+      } else {
+        // Non-admin users see all users (for user selection in forms)
+        users = await storage.getAllUsers();
+      }
+      
       const usersWithoutPassword = users.map(user => {
         const { password: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
@@ -182,7 +206,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let events;
       
       if (user?.isAdmin) {
-        events = await storage.getAllEvents();
+        // Admin users see events from users who share at least one company
+        const allEvents = await storage.getAllEvents();
+        const allUsers = await storage.getAllUsers();
+        
+        // Get events from users who share companies with current admin
+        events = await Promise.all(
+          allEvents.map(async (event) => {
+            const eventUser = allUsers.find(u => u.id === event.userId);
+            if (!eventUser) return null;
+            
+            // Check if admin and event user share at least one company
+            const userCompanies = user.companyIds || [];
+            const eventUserCompanies = eventUser.companyIds || [];
+            const hasSharedCompany = userCompanies.some(companyId => 
+              eventUserCompanies.includes(companyId)
+            );
+            
+            return hasSharedCompany ? event : null;
+          })
+        );
+        
+        // Filter out null events
+        events = events.filter(event => event !== null);
       } else {
         events = await storage.getEventsByUserId(req.session.userId!);
       }
@@ -534,7 +580,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let tasks;
       
       if (user?.isAdmin) {
-        tasks = await storage.getAllTasks();
+        // Admin users see tasks from users who share at least one company
+        const allTasks = await storage.getAllTasks();
+        const allUsers = await storage.getAllUsers();
+        
+        // Get tasks from users who share companies with current admin
+        tasks = await Promise.all(
+          allTasks.map(async (task) => {
+            const taskUser = allUsers.find(u => u.id === task.userId);
+            if (!taskUser) return null;
+            
+            // Check if admin and task user share at least one company
+            const userCompanies = user.companyIds || [];
+            const taskUserCompanies = taskUser.companyIds || [];
+            const hasSharedCompany = userCompanies.some(companyId => 
+              taskUserCompanies.includes(companyId)
+            );
+            
+            return hasSharedCompany ? task : null;
+          })
+        );
+        
+        // Filter out null tasks
+        tasks = tasks.filter(task => task !== null);
       } else {
         tasks = await storage.getTasksByUserId(req.session.userId!);
       }

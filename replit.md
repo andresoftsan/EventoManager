@@ -127,6 +127,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 16, 2025: Initial setup
 - June 16, 2025: Added Companies module with admin-only access restrictions
 - June 16, 2025: Implemented user-company linking functionality with multi-selection in user creation form
+- June 16, 2025: Made company linking mandatory for all users (minimum 1 company required)
+- June 16, 2025: Added complete user editing functionality with form state management
+- June 16, 2025: Implemented company-based access control for admin users (admins only see data from users sharing same companies)
 
 ## User Preferences
 
