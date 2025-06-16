@@ -1,0 +1,131 @@
+# Workday - Sistema de Gestão Empresarial
+
+## Overview
+
+Workday is a comprehensive business management system built for the Brazilian market. It provides a full-stack solution for managing tasks, events, clients, and team collaboration through an intuitive web interface. The application combines a modern React frontend with a robust Node.js backend, utilizing PostgreSQL for data persistence.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript for type safety
+- **Styling**: Tailwind CSS with shadcn/ui component library for consistent design
+- **State Management**: TanStack Query (React Query) for server state management
+- **Routing**: Wouter for lightweight client-side routing
+- **Form Handling**: React Hook Form with Zod validation
+- **Build Tool**: Vite for fast development and optimized production builds
+
+### Backend Architecture
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js for REST API endpoints
+- **Authentication**: Express sessions with secure cookie-based authentication
+- **API Design**: RESTful endpoints with consistent error handling
+- **Database Layer**: Drizzle ORM for type-safe database operations
+
+### Database Architecture
+- **Primary Database**: PostgreSQL with Neon serverless connection
+- **ORM**: Drizzle ORM with schema-first approach
+- **Migration Strategy**: Drizzle Kit for schema migrations
+- **Connection Pooling**: Neon serverless pooling for optimal performance
+
+## Key Components
+
+### Core Modules
+1. **Dashboard**: Real-time statistics and overview widgets
+2. **Agenda**: Calendar-based event management with user filtering
+3. **Tasks (Tarefas)**: Comprehensive task management with checklist support
+4. **Kanban**: Visual project management with drag-and-drop functionality
+5. **Sprints**: Agile project planning with weekly/biweekly sprint cycles
+6. **Clients (Clientes)**: Brazilian-specific client management with CNPJ validation
+7. **Settings (Configurações)**: User management and system configuration
+
+### Authentication System
+- Session-based authentication with secure cookie storage
+- Role-based access control (admin/user roles)
+- Protected routes with automatic redirect to login
+- Secure logout with session cleanup
+
+### Data Models
+- **Users**: Authentication and role management
+- **Events**: Calendar events with time scheduling
+- **Tasks**: Project tasks with status tracking and checklists
+- **Clients**: Brazilian business entities with CNPJ validation
+- **Kanban Stages**: Customizable workflow stages
+- **Checklist Items**: Sub-tasks within main tasks
+
+## Data Flow
+
+### Authentication Flow
+1. User submits credentials through login form
+2. Server validates against database and creates session
+3. Session ID stored in secure HTTP-only cookie
+4. Protected routes verify session on each request
+5. Frontend queries /api/auth/me to maintain auth state
+
+### Task Management Flow
+1. Tasks created with client assignment and due dates
+2. Kanban board displays tasks organized by stages
+3. Drag-and-drop updates task stages via API
+4. Checklist items provide granular task breakdown
+5. Sprint view organizes tasks by time periods
+
+### Real-time Updates
+- TanStack Query provides optimistic updates and cache invalidation
+- Mutations automatically refresh related queries
+- Toast notifications provide user feedback
+- Form validation prevents invalid data submission
+
+## External Dependencies
+
+### Core Dependencies
+- **@neondatabase/serverless**: Serverless PostgreSQL connection
+- **drizzle-orm**: Type-safe database ORM
+- **express**: Web framework for API layer
+- **react**: Frontend UI library
+- **@tanstack/react-query**: Server state management
+- **tailwindcss**: Utility-first CSS framework
+
+### UI Components
+- **@radix-ui**: Accessible component primitives
+- **shadcn/ui**: Pre-built component library
+- **lucide-react**: Icon library
+- **react-hook-form**: Form state management
+- **zod**: Schema validation
+
+### Development Tools
+- **typescript**: Type safety across the stack
+- **vite**: Frontend build tool and dev server
+- **esbuild**: Backend bundling for production
+- **tsx**: TypeScript execution for development
+
+## Deployment Strategy
+
+### Development Environment
+- Replit integration with automatic environment detection
+- Hot reloading for both frontend and backend
+- Shared schema validation between client and server
+- Environment-specific database connections
+
+### Production Builds
+- Optimized frontend assets with Vite
+- Backend bundled with esbuild for Node.js compatibility
+- Separate build processes for different platforms (AWS, Render, Railway)
+- Environment variable configuration for database and session secrets
+
+### Platform Support
+- **AWS Elastic Beanstalk**: Full deployment with RDS PostgreSQL
+- **Render**: Simplified deployment with managed PostgreSQL
+- **Railway**: Git-based deployment with automatic PostgreSQL provisioning
+- **Traditional VPS**: Apache/Nginx reverse proxy setup
+
+### Database Strategy
+- PostgreSQL as primary database with migration support
+- MySQL compatibility layer for legacy systems
+- Connection pooling for production scalability
+- Backup and recovery through platform-specific tools
+
+## Changelog
+- June 16, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.

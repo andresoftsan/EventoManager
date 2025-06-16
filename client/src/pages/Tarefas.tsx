@@ -209,8 +209,8 @@ export default function Tarefas() {
     form.reset({
       title: task.title,
       description: task.description || "",
-      startDate: formatDateForInput(task.startDate.toString()),
-      endDate: formatDateForInput(task.endDate.toString()),
+      startDate: formatDateForInput(task.startDate),
+      endDate: formatDateForInput(task.endDate),
       clientId: task.clientId,
       userId: task.userId,
       stageId: task.stageId,
@@ -243,6 +243,32 @@ export default function Tarefas() {
   const filteredTasks = tasks.filter((task: TaskWithDetails) =>
     task.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Helper function to format dates correctly
+  const formatTaskDate = (dateValue: string | Date) => {
+    try {
+      // Converte para string se for Date
+      const dateString = typeof dateValue === 'string' ? dateValue : dateValue.toISOString().split('T')[0];
+      
+      // Se é apenas data (YYYY-MM-DD), processe localmente para evitar problemas de timezone
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+      }
+      // Se contém horário, use date-fns
+      if (dateString.includes('T')) {
+        return format(new Date(dateString), "dd/MM/yyyy");
+      }
+      // Fallback manual
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return format(date, "dd/MM/yyyy");
+      }
+      return dateString;
+    } catch (error) {
+      return typeof dateValue === 'string' ? dateValue : 'Data inválida';
+    }
+  };
 
   // Helper function for status colors
   const getStatusColor = (status: string) => {
@@ -347,7 +373,7 @@ export default function Tarefas() {
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      {format(new Date(task.startDate), "dd/MM/yyyy")} - {format(new Date(task.endDate), "dd/MM/yyyy")}
+                      {formatTaskDate(task.startDate)} - {formatTaskDate(task.endDate)}
                     </span>
                   </div>
                 </div>
