@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Trash2 } from "lucide-react";
+import { User, Trash2, Edit } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,7 +206,7 @@ export default function Configuracoes() {
         <Card className="border border-gray-200">
           <CardHeader className="border-b border-gray-200">
             <CardTitle className="text-lg font-semibold text-gray-800">
-              Cadastro de Usuário
+              {editingUser ? "Editar Usuário" : "Cadastro de Usuário"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -345,13 +345,29 @@ export default function Configuracoes() {
                     />
                   )}
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Cadastrando..." : "Cadastrar Usuário"}
-                  </Button>
+                  <div className="flex gap-2">
+                    {editingUser && (
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="flex-1"
+                        disabled={isSubmitting}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                    <Button 
+                      type="submit" 
+                      className={`${editingUser ? 'flex-1' : 'w-full'} bg-blue-600 hover:bg-blue-700`}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting 
+                        ? (editingUser ? "Atualizando..." : "Cadastrando...") 
+                        : (editingUser ? "Atualizar Usuário" : "Cadastrar Usuário")
+                      }
+                    </Button>
+                  </div>
                 </form>
               </Form>
           </CardContent>
@@ -422,6 +438,15 @@ export default function Configuracoes() {
                       <Badge variant={user.isAdmin ? "default" : "secondary"}>
                         {user.isAdmin ? "Admin" : "Usuário"}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditUser(user)}
+                        className="text-blue-600 hover:text-blue-700"
+                        disabled={isSubmitting}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       {isAdmin && user.username !== "admin" && (
                         <Button
                           variant="ghost"
