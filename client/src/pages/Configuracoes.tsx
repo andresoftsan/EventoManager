@@ -39,6 +39,7 @@ interface UserWithoutPassword {
   name: string;
   email: string;
   isAdmin: boolean;
+  companyIds?: number[];
   createdAt: string;
 }
 
@@ -52,6 +53,10 @@ export default function Configuracoes() {
     queryKey: ["/api/users"],
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["/api/companies"],
+  });
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -60,6 +65,7 @@ export default function Configuracoes() {
       username: "",
       password: "",
       isAdmin: false,
+      companyIds: [],
     },
   });
 
@@ -132,7 +138,7 @@ export default function Configuracoes() {
   };
 
   // Check if current user is admin
-  const isAdmin = authData?.user?.isAdmin;
+  const isAdmin = (authData as any)?.user?.isAdmin;
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -250,6 +256,41 @@ export default function Configuracoes() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="companyIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Empresas Vinculadas</FormLabel>
+                        <div className="space-y-2">
+                          {companies.length > 0 ? (
+                            companies.map((company: any) => (
+                              <div key={company.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={field.value?.includes(company.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      field.onChange([...(field.value || []), company.id]);
+                                    } else {
+                                      field.onChange(field.value?.filter((id: number) => id !== company.id) || []);
+                                    }
+                                  }}
+                                  disabled={isSubmitting}
+                                />
+                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                  {company.nome}
+                                </label>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500">Nenhuma empresa cadastrada</p>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <Button 
                     type="submit" 
@@ -311,6 +352,18 @@ export default function Configuracoes() {
                         <h4 className="font-medium text-gray-800">{user.name}</h4>
                         <p className="text-sm text-gray-600">{user.email}</p>
                         <p className="text-xs text-gray-500">@{user.username}</p>
+                        {user.companyIds && user.companyIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {user.companyIds.map((companyId: number) => {
+                              const company = companies.find((c: any) => c.id === companyId);
+                              return company ? (
+                                <Badge key={companyId} variant="outline" className="text-xs">
+                                  {company.nome}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
