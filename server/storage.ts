@@ -6,6 +6,10 @@ import {
   kanbanStages, 
   tasks,
   checklistItems,
+  processTemplates,
+  processSteps,
+  processInstances,
+  processStepInstances,
   type User, 
   type InsertUser, 
   type Event, 
@@ -19,7 +23,15 @@ import {
   type Task,
   type InsertTask,
   type ChecklistItem,
-  type InsertChecklistItem
+  type InsertChecklistItem,
+  type ProcessTemplate,
+  type InsertProcessTemplate,
+  type ProcessStep,
+  type InsertProcessStep,
+  type ProcessInstance,
+  type InsertProcessInstance,
+  type ProcessStepInstance,
+  type InsertProcessStepInstance
 } from "@shared/schema";
 
 export interface IStorage {
@@ -73,6 +85,36 @@ export interface IStorage {
   createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
   updateChecklistItem(id: number, item: Partial<InsertChecklistItem>): Promise<ChecklistItem | undefined>;
   deleteChecklistItem(id: number): Promise<boolean>;
+
+  // Process Template methods
+  getProcessTemplate(id: number): Promise<ProcessTemplate | undefined>;
+  getAllProcessTemplates(): Promise<ProcessTemplate[]>;
+  createProcessTemplate(template: InsertProcessTemplate): Promise<ProcessTemplate>;
+  updateProcessTemplate(id: number, template: Partial<InsertProcessTemplate>): Promise<ProcessTemplate | undefined>;
+  deleteProcessTemplate(id: number): Promise<boolean>;
+
+  // Process Step methods
+  getProcessStep(id: number): Promise<ProcessStep | undefined>;
+  getProcessStepsByTemplateId(templateId: number): Promise<ProcessStep[]>;
+  createProcessStep(step: InsertProcessStep): Promise<ProcessStep>;
+  updateProcessStep(id: number, step: Partial<InsertProcessStep>): Promise<ProcessStep | undefined>;
+  deleteProcessStep(id: number): Promise<boolean>;
+
+  // Process Instance methods
+  getProcessInstance(id: number): Promise<ProcessInstance | undefined>;
+  getAllProcessInstances(): Promise<ProcessInstance[]>;
+  getProcessInstancesByUserId(userId: number): Promise<ProcessInstance[]>;
+  createProcessInstance(instance: InsertProcessInstance): Promise<ProcessInstance>;
+  updateProcessInstance(id: number, instance: Partial<InsertProcessInstance>): Promise<ProcessInstance | undefined>;
+  deleteProcessInstance(id: number): Promise<boolean>;
+
+  // Process Step Instance methods
+  getProcessStepInstance(id: number): Promise<ProcessStepInstance | undefined>;
+  getProcessStepInstancesByProcessId(processId: number): Promise<ProcessStepInstance[]>;
+  getProcessStepInstancesByUserId(userId: number): Promise<ProcessStepInstance[]>;
+  createProcessStepInstance(stepInstance: InsertProcessStepInstance): Promise<ProcessStepInstance>;
+  updateProcessStepInstance(id: number, stepInstance: Partial<InsertProcessStepInstance>): Promise<ProcessStepInstance | undefined>;
+  deleteProcessStepInstance(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -83,6 +125,10 @@ export class MemStorage implements IStorage {
   private kanbanStages: Map<number, KanbanStage>;
   private tasks: Map<number, Task>;
   private checklistItems: Map<number, ChecklistItem>;
+  private processTemplates: Map<number, ProcessTemplate>;
+  private processSteps: Map<number, ProcessStep>;
+  private processInstances: Map<number, ProcessInstance>;
+  private processStepInstances: Map<number, ProcessStepInstance>;
   private currentUserId: number;
   private currentEventId: number;
   private currentClientId: number;
@@ -90,6 +136,10 @@ export class MemStorage implements IStorage {
   private currentStageId: number;
   private currentTaskId: number;
   private currentChecklistItemId: number;
+  private currentProcessTemplateId: number;
+  private currentProcessStepId: number;
+  private currentProcessInstanceId: number;
+  private currentProcessStepInstanceId: number;
 
   constructor() {
     this.users = new Map();

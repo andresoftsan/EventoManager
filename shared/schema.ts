@@ -69,6 +69,53 @@ export const checklistItems = pgTable("checklist_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Process Templates
+export const processTemplates = pgTable("process_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Process Steps (template steps)
+export const processSteps = pgTable("process_steps", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => processTemplates.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  order: integer("order").notNull(),
+  responsibleUserId: integer("responsible_user_id").notNull().references(() => users.id),
+  formFields: json("form_fields").notNull().default([]), // Array of form field definitions
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Process Instances (actual running processes)
+export const processInstances = pgTable("process_instances", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => processTemplates.id),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("active"), // active, completed, cancelled
+  currentStepId: integer("current_step_id").references(() => processSteps.id),
+  startedBy: integer("started_by").notNull().references(() => users.id),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Process Step Instances (actual step executions)
+export const processStepInstances = pgTable("process_step_instances", {
+  id: serial("id").primaryKey(),
+  processInstanceId: integer("process_instance_id").notNull().references(() => processInstances.id, { onDelete: "cascade" }),
+  stepId: integer("step_id").notNull().references(() => processSteps.id),
+  status: text("status").notNull().default("pending"), // pending, in_progress, completed, skipped
+  assignedUserId: integer("assigned_user_id").notNull().references(() => users.id),
+  formData: json("form_data").default({}), // Submitted form data
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  notes: text("notes"),
+});
+
 // Schemas de inserção
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -107,6 +154,29 @@ export const insertChecklistItemSchema = createInsertSchema(checklistItems).omit
   createdAt: true,
 });
 
+export const insertProcessTemplateSchema = createInsertSchema(processTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProcessStepSchema = createInsertSchema(processSteps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProcessInstanceSchema = createInsertSchema(processInstances).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export const insertProcessStepInstanceSchema = createInsertSchema(processStepInstances).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
 // Tipos
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -122,6 +192,14 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertChecklistItem = z.infer<typeof insertChecklistItemSchema>;
 export type ChecklistItem = typeof checklistItems.$inferSelect;
+export type InsertProcessTemplate = z.infer<typeof insertProcessTemplateSchema>;
+export type ProcessTemplate = typeof processTemplates.$inferSelect;
+export type InsertProcessStep = z.infer<typeof insertProcessStepSchema>;
+export type ProcessStep = typeof processSteps.$inferSelect;
+export type InsertProcessInstance = z.infer<typeof insertProcessInstanceSchema>;
+export type ProcessInstance = typeof processInstances.$inferSelect;
+export type InsertProcessStepInstance = z.infer<typeof insertProcessStepInstanceSchema>;
+export type ProcessStepInstance = typeof processStepInstances.$inferSelect;
 
 // Schema de login
 export const loginSchema = z.object({
