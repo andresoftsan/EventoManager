@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ProcessTemplateModal from "@/components/ProcessTemplateModal";
 import ProcessStepExecutionModal from "@/components/ProcessStepExecutionModal";
+import StartProcessModal from "@/components/StartProcessModal";
 import type { ProcessTemplate, ProcessInstance, ProcessStepInstance } from "@shared/schema";
 
 interface ProcessTemplateWithSteps extends ProcessTemplate {
@@ -20,6 +21,7 @@ interface ProcessTemplateWithSteps extends ProcessTemplate {
 interface ProcessInstanceWithDetails extends ProcessInstance {
   templateName: string;
   startedByName: string;
+  clientName: string;
   currentStepName?: string;
 }
 
@@ -36,7 +38,9 @@ export default function Processos() {
   const [activeTab, setActiveTab] = useState("templates");
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
+  const [isStartProcessModalOpen, setIsStartProcessModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
 
   // Fetch process templates
   const {
@@ -486,6 +490,14 @@ export default function Processos() {
         }
         canExecute={selectedTask ? canExecuteTask(selectedTask) : false}
         blockedReason={selectedTask ? getBlockedReason(selectedTask) : ""}
+      />
+
+      <StartProcessModal
+        open={isStartProcessModalOpen}
+        onOpenChange={setIsStartProcessModalOpen}
+        template={selectedTemplate}
+        onStart={handleConfirmStartProcess}
+        isLoading={startProcessMutation.isPending}
       />
     </div>
   );
