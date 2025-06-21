@@ -866,11 +866,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create process template
   app.post("/api/process-templates", requireAuth, async (req, res) => {
     try {
-      const templateData = { ...req.body, createdBy: req.session.userId };
+      const templateData = { 
+        name: req.body.name,
+        description: req.body.description,
+        createdBy: req.session.userId!
+      };
       const template = await storage.createProcessTemplate(templateData);
       res.status(201).json(template);
     } catch (error) {
       res.status(500).json({ message: "Erro ao criar modelo de processo" });
+    }
+  });
+
+  // Create process step
+  app.post("/api/process-steps", requireAuth, async (req, res) => {
+    try {
+      const stepData = {
+        templateId: req.body.templateId,
+        name: req.body.name,
+        description: req.body.description,
+        order: req.body.order,
+        responsibleUserId: req.body.responsibleUserId,
+        formFields: req.body.formFields || []
+      };
+      const step = await storage.createProcessStep(stepData);
+      res.status(201).json(step);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao criar etapa do processo" });
     }
   });
 

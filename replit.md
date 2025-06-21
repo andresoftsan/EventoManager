@@ -35,8 +35,10 @@ Workday is a comprehensive business management system built for the Brazilian ma
 3. **Tasks (Tarefas)**: Comprehensive task management with checklist support
 4. **Kanban**: Visual project management with drag-and-drop functionality
 5. **Sprints**: Agile project planning with weekly/biweekly sprint cycles
-6. **Clients (Clientes)**: Brazilian-specific client management with CNPJ validation
-7. **Settings (Configurações)**: User management and system configuration
+6. **Processes (Processos)**: Workflow automation with custom forms and step-by-step execution
+7. **Clients (Clientes)**: Brazilian-specific client management with CNPJ validation
+8. **Companies (Empresas)**: Business entity management with admin-only access
+9. **Settings (Configurações)**: User management and system configuration
 
 ### Authentication System
 - Session-based authentication with secure cookie storage
@@ -49,8 +51,13 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - **Events**: Calendar events with time scheduling
 - **Tasks**: Project tasks with status tracking and checklists
 - **Clients**: Brazilian business entities with CNPJ validation
+- **Companies**: Business organizations for user grouping
 - **Kanban Stages**: Customizable workflow stages
 - **Checklist Items**: Sub-tasks within main tasks
+- **Process Templates**: Reusable workflow definitions with custom forms
+- **Process Steps**: Individual stages within process templates
+- **Process Instances**: Active executions of process templates
+- **Process Step Instances**: Individual step executions with form data
 
 ## Data Flow
 
@@ -130,6 +137,7 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 16, 2025: Made company linking mandatory for all users (minimum 1 company required)
 - June 16, 2025: Added complete user editing functionality with form state management
 - June 16, 2025: Implemented company-based access control for admin users (admins only see data from users sharing same companies)
+- June 21, 2025: Created comprehensive Processes module with template creation, dynamic forms, and workflow management
 
 ## User Preferences
 

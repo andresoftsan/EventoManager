@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import ProcessTemplateModal from "@/components/ProcessTemplateModal";
 import type { ProcessTemplate, ProcessInstance, ProcessStepInstance } from "@shared/schema";
 
 interface ProcessTemplateWithSteps extends ProcessTemplate {
@@ -32,6 +33,7 @@ export default function Processos() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("templates");
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   // Fetch process templates
   const {
@@ -75,6 +77,55 @@ export default function Processos() {
     onError: () => {
       toast({ 
         title: "Erro ao excluir modelo de processo", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Create process template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // Create template first
+      const templateResponse = await apiRequest("/api/process-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+        }),
+      });
+      
+      if (!templateResponse.ok) {
+        throw new Error("Erro ao criar modelo de processo");
+      }
+      
+      const template = await templateResponse.json();
+      
+      // Create steps
+      for (const step of data.steps) {
+        await apiRequest("/api/process-steps", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId: template.id,
+            name: step.name,
+            description: step.description,
+            order: step.order,
+            responsibleUserId: step.responsibleUserId,
+            formFields: step.formFields,
+          }),
+        });
+      }
+      
+      return template;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
+      toast({ title: "Modelo de processo criado com sucesso!" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Erro ao criar modelo de processo", 
         variant: "destructive" 
       });
     },
@@ -139,7 +190,7 @@ export default function Processos() {
           </p>
         </div>
         {user?.isAdmin && (
-          <Button>
+          <Button onClick={() => setIsTemplateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Modelo
           </Button>
@@ -174,7 +225,7 @@ export default function Processos() {
                   Crie seu primeiro modelo de processo para começar
                 </p>
                 {user?.isAdmin && (
-                  <Button className="mt-4">
+                  <Button className="mt-4" onClick={() => setIsTemplateModalOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Criar Modelo
                   </Button>
@@ -328,6 +379,12 @@ export default function Processos() {
           )}
         </TabsContent>
       </Tabs>
+
+      <ProcessTemplateModal
+        open={isTemplateModalOpen}
+        onOpenChange={setIsTemplateModalOpen}
+        onSave={createTemplateMutation.mutate}
+      />
     </div>
   );
 }
