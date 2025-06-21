@@ -144,6 +144,8 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 21, 2025: Implemented sequential process execution - steps must be completed in order
 - June 21, 2025: Created ProcessStepExecutionModal with dynamic form fields and validation
 - June 21, 2025: Added status management (pending/waiting/in_progress/completed) for proper workflow control
+- June 21, 2025: Added client selection when starting processes - all processes now require a client association
+- June 21, 2025: Created StartProcessModal for client selection with process template details
 
 ## User Preferences
 

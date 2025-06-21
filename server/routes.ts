@@ -922,12 +922,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instancesWithDetails = await Promise.all(
         instances.map(async (instance) => {
           const template = await storage.getProcessTemplate(instance.templateId);
+          const client = await storage.getClient(instance.clientId);
           const starter = await storage.getUser(instance.startedBy);
           const currentStep = instance.currentStepId ? await storage.getProcessStep(instance.currentStepId) : null;
           
           return {
             ...instance,
             templateName: template?.name || "Modelo desconhecido",
+            clientName: client?.name || "Cliente desconhecido",
             startedByName: starter?.name || "Usuário desconhecido",
             currentStepName: currentStep?.name
           };

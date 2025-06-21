@@ -368,7 +368,7 @@ export default function Processos() {
                       </div>
                       <Button 
                         className="w-full" 
-                        onClick={() => handleStartProcess(template.id)}
+                        onClick={() => handleStartProcess(template)}
                         disabled={startProcessMutation.isPending}
                       >
                         <Play className="h-4 w-4 mr-2" />
