@@ -1,0 +1,348 @@
+import React, { useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useQuery } from "@tanstack/react-query";
+import type { User } from "@shared/schema";
+
+const formFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum(["text", "number", "date", "checkbox", "textarea", "select"]),
+  label: z.string().min(1, "Rótulo é obrigatório"),
+  required: z.boolean().default(false),
+  options: z.array(z.string()).optional(), // For select fields
+});
+
+const processStepSchema = z.object({
+  name: z.string().min(1, "Nome da etapa é obrigatório"),
+  description: z.string().optional(),
+  responsibleUserId: z.number().min(1, "Responsável é obrigatório"),
+  formFields: z.array(formFieldSchema).default([]),
+});
+
+const processTemplateSchema = z.object({
+  name: z.string().min(1, "Nome do processo é obrigatório"),
+  description: z.string().optional(),
+  steps: z.array(processStepSchema).min(1, "Pelo menos uma etapa é obrigatória"),
+});
+
+type ProcessTemplateFormData = z.infer<typeof processTemplateSchema>;
+type FormFieldData = z.infer<typeof formFieldSchema>;
+
+interface ProcessTemplateModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: ProcessTemplateFormData) => Promise<void>;
+}
+
+export default function ProcessTemplateModal({
+  open,
+  onOpenChange,
+  onSave,
+}: ProcessTemplateModalProps) {
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const form = useForm<ProcessTemplateFormData>({
+    resolver: zodResolver(processTemplateSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      steps: [
+        {
+          name: "",
+          description: "",
+          responsibleUserId: 0,
+          formFields: [],
+        },
+      ],
+    },
+  });
+
+  const { fields: steps, append: addStep, remove: removeStep } = useFieldArray({
+    control: form.control,
+    name: "steps",
+  });
+
+  const { fields: formFields, append: addFormField, remove: removeFormField } = useFieldArray({
+    control: form.control,
+    name: `steps.${activeStepIndex}.formFields`,
+  });
+
+  const onSubmit = async (data: ProcessTemplateFormData) => {
+    // Add order to steps
+    const dataWithOrder = {
+      ...data,
+      steps: data.steps.map((step, index) => ({
+        ...step,
+        order: index + 1,
+      })),
+    };
+    
+    await onSave(dataWithOrder);
+    form.reset();
+    onOpenChange(false);
+  };
+
+  const addNewFormField = () => {
+    const newField: FormFieldData = {
+      id: `field_${Date.now()}`,
+      type: "text",
+      label: "",
+      required: false,
+    };
+    addFormField(newField);
+  };
+
+  const fieldTypeOptions = [
+    { value: "text", label: "Texto" },
+    { value: "number", label: "Número" },
+    { value: "date", label: "Data" },
+    { value: "checkbox", label: "Checkbox" },
+    { value: "textarea", label: "Área de Texto" },
+    { value: "select", label: "Seleção" },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Modelo de Processo</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid gap-4">
+            <div>
+              <Label htmlFor="name">Nome do Processo</Label>
+              <Input
+                id="name"
+                {...form.register("name")}
+                placeholder="Ex: Aprovação de Despesas"
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                {...form.register("description")}
+                placeholder="Descreva o objetivo deste processo..."
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Etapas do Processo</h3>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  addStep({
+                    name: "",
+                    description: "",
+                    responsibleUserId: 0,
+                    formFields: [],
+                  })
+                }
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Etapa
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Steps List */}
+              <div className="space-y-2">
+                <Label>Lista de Etapas</Label>
+                {steps.map((step, index) => (
+                  <Card
+                    key={step.id}
+                    className={`cursor-pointer transition-colors ${
+                      activeStepIndex === index ? "ring-2 ring-blue-500" : ""
+                    }`}
+                    onClick={() => setActiveStepIndex(index)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <GripVertical className="h-4 w-4 text-gray-400" />
+                          <Badge variant="secondary">{index + 1}</Badge>
+                          <span className="font-medium">
+                            {form.watch(`steps.${index}.name`) || `Etapa ${index + 1}`}
+                          </span>
+                        </div>
+                        {steps.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeStep(index);
+                              if (activeStepIndex >= index && activeStepIndex > 0) {
+                                setActiveStepIndex(activeStepIndex - 1);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Step Details */}
+              <div className="space-y-4">
+                <Label>Configuração da Etapa {activeStepIndex + 1}</Label>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Detalhes da Etapa</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor={`step-name-${activeStepIndex}`}>Nome da Etapa</Label>
+                      <Input
+                        id={`step-name-${activeStepIndex}`}
+                        {...form.register(`steps.${activeStepIndex}.name`)}
+                        placeholder="Ex: Revisão do Gerente"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`step-description-${activeStepIndex}`}>Descrição</Label>
+                      <Textarea
+                        id={`step-description-${activeStepIndex}`}
+                        {...form.register(`steps.${activeStepIndex}.description`)}
+                        placeholder="Descreva o que deve ser feito nesta etapa..."
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`step-responsible-${activeStepIndex}`}>Responsável</Label>
+                      <Select
+                        value={form.watch(`steps.${activeStepIndex}.responsibleUserId`)?.toString() || ""}
+                        onValueChange={(value) =>
+                          form.setValue(`steps.${activeStepIndex}.responsibleUserId`, parseInt(value))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o responsável" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Formulário Personalizado</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addNewFormField}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Campo
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {formFields.map((field, fieldIndex) => (
+                          <Card key={field.id} className="p-3">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Input
+                                  placeholder="Rótulo do campo"
+                                  {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.label`)}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFormField(fieldIndex)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Select
+                                  value={form.watch(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`)}
+                                  onValueChange={(value) =>
+                                    form.setValue(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`, value as any)
+                                  }
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {fieldTypeOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`required-${activeStepIndex}-${fieldIndex}`}
+                                    {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.required`)}
+                                  />
+                                  <Label htmlFor={`required-${activeStepIndex}-${fieldIndex}`} className="text-sm">
+                                    Obrigatório
+                                  </Label>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Criando..." : "Criar Modelo"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

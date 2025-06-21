@@ -488,6 +488,149 @@ export class MemStorage implements IStorage {
   async deleteChecklistItem(id: number): Promise<boolean> {
     return this.checklistItems.delete(id);
   }
+
+  // ===== PROCESS TEMPLATE METHODS =====
+  async getProcessTemplate(id: number): Promise<ProcessTemplate | undefined> {
+    return this.processTemplates.get(id);
+  }
+
+  async getAllProcessTemplates(): Promise<ProcessTemplate[]> {
+    return Array.from(this.processTemplates.values());
+  }
+
+  async createProcessTemplate(insertTemplate: InsertProcessTemplate): Promise<ProcessTemplate> {
+    const template: ProcessTemplate = {
+      id: this.currentProcessTemplateId++,
+      ...insertTemplate,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.processTemplates.set(template.id, template);
+    return template;
+  }
+
+  async updateProcessTemplate(id: number, templateUpdate: Partial<InsertProcessTemplate>): Promise<ProcessTemplate | undefined> {
+    const template = this.processTemplates.get(id);
+    if (!template) return undefined;
+
+    const updatedTemplate: ProcessTemplate = { 
+      ...template, 
+      ...templateUpdate,
+      updatedAt: new Date().toISOString(),
+    };
+    this.processTemplates.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+
+  async deleteProcessTemplate(id: number): Promise<boolean> {
+    return this.processTemplates.delete(id);
+  }
+
+  // ===== PROCESS STEP METHODS =====
+  async getProcessStep(id: number): Promise<ProcessStep | undefined> {
+    return this.processSteps.get(id);
+  }
+
+  async getProcessStepsByTemplateId(templateId: number): Promise<ProcessStep[]> {
+    return Array.from(this.processSteps.values()).filter(step => step.templateId === templateId);
+  }
+
+  async createProcessStep(insertStep: InsertProcessStep): Promise<ProcessStep> {
+    const step: ProcessStep = {
+      id: this.currentProcessStepId++,
+      ...insertStep,
+      createdAt: new Date().toISOString(),
+    };
+    this.processSteps.set(step.id, step);
+    return step;
+  }
+
+  async updateProcessStep(id: number, stepUpdate: Partial<InsertProcessStep>): Promise<ProcessStep | undefined> {
+    const step = this.processSteps.get(id);
+    if (!step) return undefined;
+
+    const updatedStep: ProcessStep = { ...step, ...stepUpdate };
+    this.processSteps.set(id, updatedStep);
+    return updatedStep;
+  }
+
+  async deleteProcessStep(id: number): Promise<boolean> {
+    return this.processSteps.delete(id);
+  }
+
+  // ===== PROCESS INSTANCE METHODS =====
+  async getProcessInstance(id: number): Promise<ProcessInstance | undefined> {
+    return this.processInstances.get(id);
+  }
+
+  async getAllProcessInstances(): Promise<ProcessInstance[]> {
+    return Array.from(this.processInstances.values());
+  }
+
+  async getProcessInstancesByUserId(userId: number): Promise<ProcessInstance[]> {
+    return Array.from(this.processInstances.values()).filter(instance => instance.startedBy === userId);
+  }
+
+  async createProcessInstance(insertInstance: InsertProcessInstance): Promise<ProcessInstance> {
+    const instance: ProcessInstance = {
+      id: this.currentProcessInstanceId++,
+      ...insertInstance,
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+    };
+    this.processInstances.set(instance.id, instance);
+    return instance;
+  }
+
+  async updateProcessInstance(id: number, instanceUpdate: Partial<InsertProcessInstance>): Promise<ProcessInstance | undefined> {
+    const instance = this.processInstances.get(id);
+    if (!instance) return undefined;
+
+    const updatedInstance: ProcessInstance = { ...instance, ...instanceUpdate };
+    this.processInstances.set(id, updatedInstance);
+    return updatedInstance;
+  }
+
+  async deleteProcessInstance(id: number): Promise<boolean> {
+    return this.processInstances.delete(id);
+  }
+
+  // ===== PROCESS STEP INSTANCE METHODS =====
+  async getProcessStepInstance(id: number): Promise<ProcessStepInstance | undefined> {
+    return this.processStepInstances.get(id);
+  }
+
+  async getProcessStepInstancesByProcessId(processId: number): Promise<ProcessStepInstance[]> {
+    return Array.from(this.processStepInstances.values()).filter(stepInstance => stepInstance.processInstanceId === processId);
+  }
+
+  async getProcessStepInstancesByUserId(userId: number): Promise<ProcessStepInstance[]> {
+    return Array.from(this.processStepInstances.values()).filter(stepInstance => stepInstance.assignedUserId === userId);
+  }
+
+  async createProcessStepInstance(insertStepInstance: InsertProcessStepInstance): Promise<ProcessStepInstance> {
+    const stepInstance: ProcessStepInstance = {
+      id: this.currentProcessStepInstanceId++,
+      ...insertStepInstance,
+      startedAt: null,
+      completedAt: null,
+    };
+    this.processStepInstances.set(stepInstance.id, stepInstance);
+    return stepInstance;
+  }
+
+  async updateProcessStepInstance(id: number, stepInstanceUpdate: Partial<InsertProcessStepInstance>): Promise<ProcessStepInstance | undefined> {
+    const stepInstance = this.processStepInstances.get(id);
+    if (!stepInstance) return undefined;
+
+    const updatedStepInstance: ProcessStepInstance = { ...stepInstance, ...stepInstanceUpdate };
+    this.processStepInstances.set(id, updatedStepInstance);
+    return updatedStepInstance;
+  }
+
+  async deleteProcessStepInstance(id: number): Promise<boolean> {
+    return this.processStepInstances.delete(id);
+  }
 }
 
 export const storage = new MemStorage();

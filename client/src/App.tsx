@@ -16,6 +16,7 @@ import Sprints from "@/pages/Sprints";
 import Clientes from "@/pages/Clientes";
 import Empresas from "@/pages/Empresas";
 import Configuracoes from "@/pages/Configuracoes";
+import Processos from "@/pages/Processos";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
@@ -32,6 +33,7 @@ function AuthenticatedApp() {
             <Route path="/tarefas" component={() => <Tarefas />} />
             <Route path="/kanban" component={() => <Kanban />} />
             <Route path="/sprints" component={() => <Sprints />} />
+            <Route path="/processos" component={() => <Processos />} />
             <Route path="/clientes" component={() => <Clientes />} />
             <Route path="/empresas" component={() => <Empresas />} />
             <Route path="/configuracoes" component={() => <Configuracoes />} />

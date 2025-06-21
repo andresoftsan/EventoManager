@@ -836,6 +836,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== PROCESS TEMPLATE ROUTES =====
+  
+  // Get all process templates
+  app.get("/api/process-templates", requireAuth, async (req, res) => {
+    try {
+      const templates = await storage.getAllProcessTemplates();
+      
+      // Get additional details for templates
+      const templatesWithDetails = await Promise.all(
+        templates.map(async (template) => {
+          const steps = await storage.getProcessStepsByTemplateId(template.id);
+          const creator = await storage.getUser(template.createdBy);
+          
+          return {
+            ...template,
+            stepsCount: steps.length,
+            createdByName: creator?.name || "Usuário desconhecido"
+          };
+        })
+      );
+
+      res.json(templatesWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar modelos de processo" });
+    }
+  });
+
+  // Create process template
+  app.post("/api/process-templates", requireAuth, async (req, res) => {
+    try {
+      const templateData = { ...req.body, createdBy: req.session.userId };
+      const template = await storage.createProcessTemplate(templateData);
+      res.status(201).json(template);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao criar modelo de processo" });
+    }
+  });
+
+  // Delete process template
+  app.delete("/api/process-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteProcessTemplate(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Modelo de processo não encontrado" });
+      }
+
+      res.json({ message: "Modelo de processo excluído com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir modelo de processo" });
+    }
+  });
+
+  // ===== PROCESS INSTANCE ROUTES =====
+  
+  // Get all process instances
+  app.get("/api/process-instances", requireAuth, async (req, res) => {
+    try {
+      const instances = await storage.getAllProcessInstances();
+      
+      const instancesWithDetails = await Promise.all(
+        instances.map(async (instance) => {
+          const template = await storage.getProcessTemplate(instance.templateId);
+          const starter = await storage.getUser(instance.startedBy);
+          const currentStep = instance.currentStepId ? await storage.getProcessStep(instance.currentStepId) : null;
+          
+          return {
+            ...instance,
+            templateName: template?.name || "Modelo desconhecido",
+            startedByName: starter?.name || "Usuário desconhecido",
+            currentStepName: currentStep?.name
+          };
+        })
+      );
+
+      res.json(instancesWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar processos" });
+    }
+  });
+
+  // Start new process instance
+  app.post("/api/process-instances", requireAuth, async (req, res) => {
+    try {
+      const { templateId } = req.body;
+      
+      // Get template and its steps
+      const template = await storage.getProcessTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Modelo de processo não encontrado" });
+      }
+
+      const steps = await storage.getProcessStepsByTemplateId(templateId);
+      steps.sort((a, b) => a.order - b.order);
+
+      if (steps.length === 0) {
+        return res.status(400).json({ message: "Modelo de processo não possui etapas" });
+      }
+
+      // Create process instance
+      const instanceData = {
+        templateId,
+        name: `${template.name} - ${new Date().toLocaleDateString('pt-BR')}`,
+        startedBy: req.session.userId!,
+        currentStepId: steps[0].id,
+      };
+
+      const instance = await storage.createProcessInstance(instanceData);
+
+      // Create step instances for all steps
+      for (const step of steps) {
+        const stepInstanceData = {
+          processInstanceId: instance.id,
+          stepId: step.id,
+          assignedUserId: step.responsibleUserId,
+          status: step.order === 1 ? "pending" : "pending",
+          formData: {},
+        };
+        
+        await storage.createProcessStepInstance(stepInstanceData);
+      }
+
+      res.status(201).json(instance);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao iniciar processo" });
+    }
+  });
+
+  // ===== PROCESS STEP INSTANCE ROUTES =====
+  
+  // Get my pending tasks
+  app.get("/api/process-step-instances/my-tasks", requireAuth, async (req, res) => {
+    try {
+      const myTasks = await storage.getProcessStepInstancesByUserId(req.session.userId!);
+      const pendingTasks = myTasks.filter(task => task.status === "pending" || task.status === "in_progress");
+      
+      const tasksWithDetails = await Promise.all(
+        pendingTasks.map(async (task) => {
+          const step = await storage.getProcessStep(task.stepId);
+          const processInstance = await storage.getProcessInstance(task.processInstanceId);
+          const template = processInstance ? await storage.getProcessTemplate(processInstance.templateId) : null;
+          
+          return {
+            ...task,
+            stepName: step?.name || "Etapa desconhecida",
+            processName: processInstance?.name || "Processo desconhecido",
+            templateName: template?.name || "Modelo desconhecido"
+          };
+        })
+      );
+
+      res.json(tasksWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar tarefas pendentes" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
