@@ -62,8 +62,9 @@ export default function Processos() {
   // Delete process template mutation
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest(`/api/process-templates/${id}`, {
+      const response = await fetch(`/api/process-templates/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       if (!response.ok) {
         throw new Error("Erro ao excluir modelo de processo");
@@ -85,27 +86,39 @@ export default function Processos() {
   // Create process template mutation
   const createTemplateMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Creating template with data:", data);
+      
       // Create template first
-      const templateResponse = await apiRequest("/api/process-templates", {
+      const templateResponse = await fetch("/api/process-templates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({
           name: data.name,
           description: data.description,
         }),
+        credentials: "include"
       });
       
       if (!templateResponse.ok) {
-        throw new Error("Erro ao criar modelo de processo");
+        const errorData = await templateResponse.text();
+        console.error("Template creation failed:", errorData);
+        throw new Error(`Erro ao criar modelo de processo: ${templateResponse.status}`);
       }
       
       const template = await templateResponse.json();
+      console.log("Template created:", template);
       
       // Create steps
       for (const step of data.steps) {
-        const stepResponse = await apiRequest("/api/process-steps", {
+        const stepResponse = await fetch("/api/process-steps", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify({
             templateId: template.id,
             name: step.name,
@@ -114,10 +127,13 @@ export default function Processos() {
             responsibleUserId: step.responsibleUserId,
             formFields: step.formFields,
           }),
+          credentials: "include"
         });
         
         if (!stepResponse.ok) {
-          throw new Error("Erro ao criar etapa do processo");
+          const errorData = await stepResponse.text();
+          console.error("Step creation failed:", errorData);
+          throw new Error(`Erro ao criar etapa do processo: ${stepResponse.status}`);
         }
       }
       
@@ -141,10 +157,14 @@ export default function Processos() {
   // Start process instance mutation
   const startProcessMutation = useMutation({
     mutationFn: async (templateId: number) => {
-      const response = await apiRequest("/api/process-instances", {
+      const response = await fetch("/api/process-instances", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({ templateId }),
+        credentials: "include",
       });
       if (!response.ok) {
         throw new Error("Erro ao iniciar processo");
