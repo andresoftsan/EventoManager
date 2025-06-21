@@ -103,7 +103,7 @@ export default function Processos() {
       
       // Create steps
       for (const step of data.steps) {
-        await apiRequest("/api/process-steps", {
+        const stepResponse = await apiRequest("/api/process-steps", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -115,6 +115,10 @@ export default function Processos() {
             formFields: step.formFields,
           }),
         });
+        
+        if (!stepResponse.ok) {
+          throw new Error("Erro ao criar etapa do processo");
+        }
       }
       
       return template;
@@ -122,10 +126,13 @@ export default function Processos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
       toast({ title: "Modelo de processo criado com sucesso!" });
+      setIsTemplateModalOpen(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Error creating template:", error);
       toast({ 
         title: "Erro ao criar modelo de processo", 
+        description: error.message,
         variant: "destructive" 
       });
     },

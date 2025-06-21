@@ -83,17 +83,38 @@ export default function ProcessTemplateModal({
   });
 
   const onSubmit = async (data: ProcessTemplateFormData) => {
-    // Add order to steps
-    const dataWithOrder = {
-      ...data,
-      steps: data.steps.map((step, index) => ({
-        ...step,
-        order: index + 1,
-      })),
-    };
-    
-    await onSave(dataWithOrder);
-    form.reset();
+    try {
+      // Add order to steps
+      const dataWithOrder = {
+        ...data,
+        steps: data.steps.map((step, index) => ({
+          ...step,
+          order: index + 1,
+        })),
+      };
+      
+      await onSave(dataWithOrder);
+      handleClose();
+    } catch (error) {
+      // Error handling is done in the mutation
+      console.error("Error creating process template:", error);
+    }
+  };
+
+  const handleClose = () => {
+    form.reset({
+      name: "",
+      description: "",
+      steps: [
+        {
+          name: "",
+          description: "",
+          responsibleUserId: 0,
+          formFields: [],
+        },
+      ],
+    });
+    setActiveStepIndex(0);
     onOpenChange(false);
   };
 
@@ -117,7 +138,13 @@ export default function ProcessTemplateModal({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!newOpen) {
+        handleClose();
+      } else {
+        onOpenChange(newOpen);
+      }
+    }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Modelo de Processo</DialogTitle>
@@ -337,7 +364,7 @@ export default function ProcessTemplateModal({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
