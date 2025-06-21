@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ProcessTemplateModal from "@/components/ProcessTemplateModal";
+import ProcessStepExecutionModal from "@/components/ProcessStepExecutionModal";
 import type { ProcessTemplate, ProcessInstance, ProcessStepInstance } from "@shared/schema";
 
 interface ProcessTemplateWithSteps extends ProcessTemplate {
@@ -34,6 +35,8 @@ export default function Processos() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("templates");
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
   // Fetch process templates
   const {
@@ -192,6 +195,81 @@ export default function Processos() {
 
   const handleStartProcess = (templateId: number) => {
     startProcessMutation.mutate(templateId);
+  };
+
+  // Execute process step mutation
+  const executeStepMutation = useMutation({
+    mutationFn: async ({ stepInstanceId, formData, notes }: { stepInstanceId: number, formData: Record<string, any>, notes?: string }) => {
+      const response = await fetch(`/api/process-step-instances/${stepInstanceId}/execute`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ formData, notes }),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Erro ao executar etapa do processo");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/process-step-instances/my-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/process-instances"] });
+      toast({ title: "Etapa executada com sucesso!" });
+      setIsExecutionModalOpen(false);
+      setSelectedTask(null);
+    },
+    onError: (error) => {
+      console.error("Error executing step:", error);
+      toast({ 
+        title: "Erro ao executar etapa", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleExecuteTask = (task: any) => {
+    setSelectedTask(task);
+    setIsExecutionModalOpen(true);
+  };
+
+  const canExecuteTask = (task: any) => {
+    if (task.status === "completed") return false;
+    
+    // Check if this is the first step (order 1) or if previous steps are completed
+    if (task.stepOrder === 1) return true;
+    
+    // Check if all previous steps in the same process are completed
+    const sameProcessTasks = myTasks.filter(t => 
+      t.processInstanceId === task.processInstanceId && 
+      t.stepOrder < task.stepOrder
+    );
+    
+    const allPreviousCompleted = sameProcessTasks.every(t => t.status === "completed");
+    return allPreviousCompleted;
+  };
+
+  const getBlockedReason = (task: any) => {
+    if (task.status === "completed") {
+      return "Esta etapa já foi executada";
+    }
+    
+    if (task.stepOrder > 1) {
+      const sameProcessTasks = myTasks.filter(t => 
+        t.processInstanceId === task.processInstanceId && 
+        t.stepOrder < task.stepOrder
+      );
+      
+      const incompletePrevious = sameProcessTasks.filter(t => t.status !== "completed");
+      if (incompletePrevious.length > 0) {
+        return `Você deve executar a etapa ${incompletePrevious[0].stepOrder} antes desta`;
+      }
+    }
+    
+    return "";
   };
 
   const getStatusBadge = (status: string) => {
@@ -391,9 +469,13 @@ export default function Processos() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Button className="w-full">
+                    <Button 
+                      className="w-full"
+                      onClick={() => handleExecuteTask(task)}
+                      disabled={task.status === "completed"}
+                    >
                       <Settings className="h-4 w-4 mr-2" />
-                      Executar Tarefa
+                      {task.status === "completed" ? "Já Executada" : "Executar Tarefa"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -407,6 +489,17 @@ export default function Processos() {
         open={isTemplateModalOpen}
         onOpenChange={setIsTemplateModalOpen}
         onSave={createTemplateMutation.mutate}
+      />
+
+      <ProcessStepExecutionModal
+        open={isExecutionModalOpen}
+        onOpenChange={setIsExecutionModalOpen}
+        stepInstance={selectedTask}
+        onExecute={(stepInstanceId, formData, notes) => 
+          executeStepMutation.mutateAsync({ stepInstanceId, formData, notes })
+        }
+        canExecute={selectedTask ? canExecuteTask(selectedTask) : false}
+        blockedReason={selectedTask ? getBlockedReason(selectedTask) : ""}
       />
     </div>
   );

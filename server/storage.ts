@@ -623,7 +623,13 @@ export class MemStorage implements IStorage {
     const stepInstance = this.processStepInstances.get(id);
     if (!stepInstance) return undefined;
 
-    const updatedStepInstance: ProcessStepInstance = { ...stepInstance, ...stepInstanceUpdate };
+    const updatedStepInstance: ProcessStepInstance = { 
+      ...stepInstance, 
+      ...stepInstanceUpdate,
+      // Preserve existing timestamps if not being updated
+      startedAt: stepInstanceUpdate.startedAt || stepInstance.startedAt,
+      completedAt: stepInstanceUpdate.completedAt || stepInstance.completedAt,
+    };
     this.processStepInstances.set(id, updatedStepInstance);
     return updatedStepInstance;
   }

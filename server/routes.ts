@@ -993,7 +993,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/process-step-instances/my-tasks", requireAuth, async (req, res) => {
     try {
       const myTasks = await storage.getProcessStepInstancesByUserId(req.session.userId!);
-      const pendingTasks = myTasks.filter(task => task.status === "pending" || task.status === "in_progress");
+      const pendingTasks = myTasks.filter(task => 
+        task.status === "pending" || 
+        task.status === "in_progress" || 
+        task.status === "waiting"
+      );
       
       const tasksWithDetails = await Promise.all(
         pendingTasks.map(async (task) => {
@@ -1005,7 +1009,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...task,
             stepName: step?.name || "Etapa desconhecida",
             processName: processInstance?.name || "Processo desconhecido",
-            templateName: template?.name || "Modelo desconhecido"
+            templateName: template?.name || "Modelo desconhecido",
+            stepOrder: step?.order || 0,
+            formFields: step?.formFields || []
           };
         })
       );
@@ -1013,6 +1019,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(tasksWithDetails);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar tarefas pendentes" });
+    }
+  });
+
+  // Execute process step instance
+  app.post("/api/process-step-instances/:id/execute", requireAuth, async (req, res) => {
+    try {
+      const stepInstanceId = parseInt(req.params.id);
+      const { formData, notes } = req.body;
+
+      const stepInstance = await storage.getProcessStepInstance(stepInstanceId);
+      if (!stepInstance) {
+        return res.status(404).json({ message: "Instância de etapa não encontrada" });
+      }
+
+      // Check if user is assigned to this step
+      if (stepInstance.assignedUserId !== req.session.userId) {
+        return res.status(403).json({ message: "Não autorizado a executar esta etapa" });
+      }
+
+      // Check if step is already completed
+      if (stepInstance.status === "completed") {
+        return res.status(400).json({ message: "Esta etapa já foi executada" });
+      }
+
+      // Get the step to check order
+      const step = await storage.getProcessStep(stepInstance.stepId);
+      if (!step) {
+        return res.status(404).json({ message: "Etapa não encontrada" });
+      }
+
+      // Check if previous steps are completed (sequential execution)
+      if (step.order > 1) {
+        const processInstance = await storage.getProcessInstance(stepInstance.processInstanceId);
+        if (processInstance) {
+          const allSteps = await storage.getProcessStepsByTemplateId(processInstance.templateId);
+          allSteps.sort((a, b) => a.order - b.order);
+          
+          const allStepInstances = await storage.getProcessStepInstancesByProcessId(processInstance.id);
+          
+          // Check if all previous steps are completed
+          for (let i = 0; i < step.order - 1; i++) {
+            const previousStep = allSteps[i];
+            const previousStepInstance = allStepInstances.find(si => si.stepId === previousStep.id);
+            
+            if (!previousStepInstance || previousStepInstance.status !== "completed") {
+              return res.status(400).json({ 
+                message: `Você deve executar a etapa ${previousStep.order} (${previousStep.name}) antes desta` 
+              });
+            }
+          }
+        }
+      }
+
+      // Mark step as in progress first, then completed
+      await storage.updateProcessStepInstance(stepInstanceId, {
+        status: "in_progress",
+        startedAt: new Date().toISOString(),
+      });
+
+      // Update step instance with completion
+      const updatedStepInstance = await storage.updateProcessStepInstance(stepInstanceId, {
+        status: "completed",
+        formData: formData || {},
+        notes: notes || "",
+        completedAt: new Date().toISOString(),
+      });
+
+      if (!updatedStepInstance) {
+        return res.status(500).json({ message: "Erro ao atualizar instância de etapa" });
+      }
+
+      // Get process instance and check if we need to move to next step
+      const processInstance = await storage.getProcessInstance(stepInstance.processInstanceId);
+      if (processInstance) {
+        const allSteps = await storage.getProcessStepsByTemplateId(processInstance.templateId);
+        allSteps.sort((a, b) => a.order - b.order);
+        
+        const allStepInstances = await storage.getProcessStepInstancesByProcessId(processInstance.id);
+        const currentStepIndex = allSteps.findIndex(step => step.id === stepInstance.stepId);
+        
+        // Check if there's a next step
+        if (currentStepIndex < allSteps.length - 1) {
+          const nextStep = allSteps[currentStepIndex + 1];
+          const nextStepInstance = allStepInstances.find(si => si.stepId === nextStep.id);
+          
+          // Update process current step
+          await storage.updateProcessInstance(processInstance.id, {
+            currentStepId: nextStep.id,
+          });
+          
+          // Mark next step as pending (available for execution)
+          if (nextStepInstance) {
+            await storage.updateProcessStepInstance(nextStepInstance.id, {
+              status: "pending",
+            });
+          }
+        } else {
+          // All steps completed, mark process as completed
+          await storage.updateProcessInstance(processInstance.id, {
+            status: "completed",
+            completedAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      res.json(updatedStepInstance);
+    } catch (error) {
+      console.error("Error executing step:", error);
+      res.status(500).json({ message: "Erro ao executar etapa do processo" });
     }
   });
 
