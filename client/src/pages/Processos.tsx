@@ -189,12 +189,10 @@ export default function Processos() {
             Gerencie modelos de processo e acompanhe execuções
           </p>
         </div>
-        {user?.isAdmin && (
-          <Button onClick={() => setIsTemplateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Modelo
-          </Button>
-        )}
+        <Button onClick={() => setIsTemplateModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Modelo
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -224,12 +222,10 @@ export default function Processos() {
                 <p className="text-muted-foreground text-center">
                   Crie seu primeiro modelo de processo para começar
                 </p>
-                {user?.isAdmin && (
-                  <Button className="mt-4" onClick={() => setIsTemplateModalOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Modelo
-                  </Button>
-                )}
+                <Button className="mt-4" onClick={() => setIsTemplateModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Modelo
+                </Button>
               </CardContent>
             </Card>
           ) : (
