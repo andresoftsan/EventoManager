@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -203,43 +203,53 @@ export default function ProcessTemplateModal({
               {/* Steps List */}
               <div className="space-y-2">
                 <Label>Lista de Etapas</Label>
-                {steps.map((step, index) => (
-                  <Card
-                    key={step.id}
-                    className={`cursor-pointer transition-colors ${
-                      activeStepIndex === index ? "ring-2 ring-blue-500" : ""
-                    }`}
-                    onClick={() => setActiveStepIndex(index)}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <GripVertical className="h-4 w-4 text-gray-400" />
-                          <Badge variant="secondary">{index + 1}</Badge>
-                          <span className="font-medium">
-                            {form.watch(`steps.${index}.name`) || `Etapa ${index + 1}`}
-                          </span>
+                {steps.map((step, index) => {
+                  const stepFormFields = form.watch(`steps.${index}.formFields`) || [];
+                  return (
+                    <Card
+                      key={step.id}
+                      className={`cursor-pointer transition-colors ${
+                        activeStepIndex === index ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                      }`}
+                      onClick={() => setActiveStepIndex(index)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <GripVertical className="h-4 w-4 text-gray-400" />
+                            <Badge variant="secondary">{index + 1}</Badge>
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {form.watch(`steps.${index}.name`) || `Etapa ${index + 1}`}
+                              </span>
+                              {stepFormFields.length > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  {stepFormFields.length} campo{stepFormFields.length !== 1 ? 's' : ''} personalizado{stepFormFields.length !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {steps.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeStep(index);
+                                if (activeStepIndex >= index && activeStepIndex > 0) {
+                                  setActiveStepIndex(activeStepIndex - 1);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
-                        {steps.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeStep(index);
-                              if (activeStepIndex >= index && activeStepIndex > 0) {
-                                setActiveStepIndex(activeStepIndex - 1);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {/* Step Details */}
@@ -293,7 +303,7 @@ export default function ProcessTemplateModal({
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label>Formulário Personalizado</Label>
+                        <Label>Formulário Personalizado desta Etapa</Label>
                         <Button
                           type="button"
                           variant="outline"
@@ -301,60 +311,77 @@ export default function ProcessTemplateModal({
                           onClick={addNewFormField}
                         >
                           <Plus className="h-4 w-4 mr-1" />
-                          Campo
+                          Adicionar Campo
                         </Button>
                       </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Cada etapa pode ter seu próprio formulário. Defina os campos que o responsável 
+                        deve preencher ao executar esta etapa.
+                      </p>
 
                       <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {formFields.map((field, fieldIndex) => (
-                          <Card key={field.id} className="p-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Input
-                                  placeholder="Rótulo do campo"
-                                  {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.label`)}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeFormField(fieldIndex)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="flex space-x-2">
-                                <Select
-                                  value={form.watch(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`)}
-                                  onValueChange={(value) =>
-                                    form.setValue(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`, value as any)
-                                  }
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {fieldTypeOptions.map((option) => (
-                                      <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`required-${activeStepIndex}-${fieldIndex}`}
-                                    {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.required`)}
+                        {formFields.length === 0 ? (
+                          <div className="text-center py-6 text-muted-foreground">
+                            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Nenhum campo personalizado criado</p>
+                            <p className="text-xs">Clique em "Adicionar Campo" para criar formulários personalizados</p>
+                          </div>
+                        ) : (
+                          formFields.map((field, fieldIndex) => (
+                            <Card key={field.id} className="p-3">
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <Input
+                                    placeholder="Ex: Valor do Orçamento, Parecer Técnico..."
+                                    {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.label`)}
+                                    className="flex-1"
                                   />
-                                  <Label htmlFor={`required-${activeStepIndex}-${fieldIndex}`} className="text-sm">
-                                    Obrigatório
-                                  </Label>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeFormField(fieldIndex)}
+                                    className="ml-2 text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2 items-center">
+                                  <div className="flex items-center space-x-2">
+                                    <Label className="text-xs">Tipo:</Label>
+                                    <Select
+                                      value={form.watch(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`)}
+                                      onValueChange={(value) =>
+                                        form.setValue(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`, value as any)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {fieldTypeOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`required-${activeStepIndex}-${fieldIndex}`}
+                                      {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.required`)}
+                                    />
+                                    <Label htmlFor={`required-${activeStepIndex}-${fieldIndex}`} className="text-xs">
+                                      Campo obrigatório
+                                    </Label>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </Card>
-                        ))}
+                            </Card>
+                          ))
+                        )}
                       </div>
                     </div>
                   </CardContent>
