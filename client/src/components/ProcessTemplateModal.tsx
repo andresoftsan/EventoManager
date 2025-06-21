@@ -77,6 +77,7 @@ export default function ProcessTemplateModal({
     name: "steps",
   });
 
+  // Recria o useFieldArray sempre que activeStepIndex muda para garantir isolamento
   const { fields: formFields, append: addFormField, remove: removeFormField } = useFieldArray({
     control: form.control,
     name: `steps.${activeStepIndex}.formFields`,
@@ -102,6 +103,7 @@ export default function ProcessTemplateModal({
   };
 
   const handleClose = () => {
+    // Reset completo do formulário
     form.reset({
       name: "",
       description: "",
@@ -118,14 +120,22 @@ export default function ProcessTemplateModal({
     onOpenChange(false);
   };
 
+  // Forçar re-render quando mudar de etapa
+  const handleStepChange = (stepIndex: number) => {
+    setActiveStepIndex(stepIndex);
+  };
+
   const addNewFormField = () => {
     const newField: FormFieldData = {
-      id: `field_${Date.now()}`,
+      id: `field_${activeStepIndex}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: "text",
       label: "",
       required: false,
     };
-    addFormField(newField);
+    
+    // Garantir que estamos adicionando ao array correto da etapa ativa
+    const currentFields = form.getValues(`steps.${activeStepIndex}.formFields`) || [];
+    form.setValue(`steps.${activeStepIndex}.formFields`, [...currentFields, newField]);
   };
 
   const fieldTypeOptions = [
@@ -211,7 +221,7 @@ export default function ProcessTemplateModal({
                       className={`cursor-pointer transition-colors ${
                         activeStepIndex === index ? "ring-2 ring-blue-500 bg-blue-50" : ""
                       }`}
-                      onClick={() => setActiveStepIndex(index)}
+                      onClick={() => handleStepChange(index)}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
@@ -238,7 +248,9 @@ export default function ProcessTemplateModal({
                                 e.stopPropagation();
                                 removeStep(index);
                                 if (activeStepIndex >= index && activeStepIndex > 0) {
-                                  setActiveStepIndex(activeStepIndex - 1);
+                                  handleStepChange(activeStepIndex - 1);
+                                } else if (activeStepIndex >= steps.length - 1) {
+                                  handleStepChange(Math.max(0, steps.length - 2));
                                 }
                               }}
                             >
@@ -328,7 +340,7 @@ export default function ProcessTemplateModal({
                           </div>
                         ) : (
                           formFields.map((field, fieldIndex) => (
-                            <Card key={field.id} className="p-3">
+                            <Card key={`${activeStepIndex}-${field.id}-${fieldIndex}`} className="p-3">
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                   <Input
@@ -340,7 +352,11 @@ export default function ProcessTemplateModal({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => removeFormField(fieldIndex)}
+                                    onClick={() => {
+                                      const currentFields = form.getValues(`steps.${activeStepIndex}.formFields`) || [];
+                                      const newFields = currentFields.filter((_, index) => index !== fieldIndex);
+                                      form.setValue(`steps.${activeStepIndex}.formFields`, newFields);
+                                    }}
                                     className="ml-2 text-red-600 hover:text-red-700"
                                   >
                                     <Trash2 className="h-4 w-4" />
