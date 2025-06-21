@@ -163,14 +163,14 @@ export default function Processos() {
 
   // Start process instance mutation
   const startProcessMutation = useMutation({
-    mutationFn: async (templateId: number) => {
+    mutationFn: async ({ templateId, clientId }: { templateId: number, clientId: number }) => {
       const response = await fetch("/api/process-instances", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify({ templateId }),
+        body: JSON.stringify({ templateId, clientId }),
         credentials: "include",
       });
       if (!response.ok) {
@@ -182,6 +182,8 @@ export default function Processos() {
       queryClient.invalidateQueries({ queryKey: ["/api/process-instances"] });
       queryClient.invalidateQueries({ queryKey: ["/api/process-step-instances/my-tasks"] });
       toast({ title: "Processo iniciado com sucesso!" });
+      setIsStartProcessModalOpen(false);
+      setSelectedTemplate(null);
     },
     onError: () => {
       toast({ 
@@ -197,8 +199,13 @@ export default function Processos() {
     }
   };
 
-  const handleStartProcess = (templateId: number) => {
-    startProcessMutation.mutate(templateId);
+  const handleStartProcess = (template: any) => {
+    setSelectedTemplate(template);
+    setIsStartProcessModalOpen(true);
+  };
+
+  const handleConfirmStartProcess = (templateId: number, clientId: number) => {
+    startProcessMutation.mutate({ templateId, clientId });
   };
 
   // Execute process step mutation

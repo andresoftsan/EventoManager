@@ -95,6 +95,7 @@ export const processSteps = pgTable("process_steps", {
 export const processInstances = pgTable("process_instances", {
   id: serial("id").primaryKey(),
   templateId: integer("template_id").notNull().references(() => processTemplates.id),
+  clientId: integer("client_id").notNull().references(() => clients.id),
   name: text("name").notNull(),
   status: text("status").notNull().default("active"), // active, completed, cancelled
   currentStepId: integer("current_step_id").references(() => processSteps.id),

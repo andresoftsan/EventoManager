@@ -943,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start new process instance
   app.post("/api/process-instances", requireAuth, async (req, res) => {
     try {
-      const { templateId } = req.body;
+      const { templateId, clientId } = req.body;
       
       // Get template and its steps
       const template = await storage.getProcessTemplate(templateId);
@@ -958,10 +958,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Modelo de processo não possui etapas" });
       }
 
+      // Get client name for process name
+      const client = await storage.getClient(clientId);
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
       // Create process instance
       const instanceData = {
         templateId,
-        name: `${template.name} - ${new Date().toLocaleDateString('pt-BR')}`,
+        clientId,
+        name: `${template.name} - ${client.name} - ${new Date().toLocaleDateString('pt-BR')}`,
         startedBy: req.session.userId!,
         currentStepId: steps[0].id,
       };
