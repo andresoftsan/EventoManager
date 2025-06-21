@@ -120,9 +120,30 @@ export default function ProcessTemplateModal({
     onOpenChange(false);
   };
 
-  // Forçar re-render quando mudar de etapa
+  // Forçar re-render e garantir isolamento quando mudar de etapa
   const handleStepChange = (stepIndex: number) => {
+    // Força o form a re-validar os campos da etapa atual antes de mudar
+    form.trigger(`steps.${activeStepIndex}`);
     setActiveStepIndex(stepIndex);
+  };
+
+  // Garantir que a etapa tem valores padrão ao ser criada
+  const ensureStepDefaults = (stepIndex: number) => {
+    const currentStep = form.getValues(`steps.${stepIndex}`);
+    if (!currentStep) {
+      form.setValue(`steps.${stepIndex}`, {
+        name: "",
+        description: "",
+        responsibleUserId: 0,
+        formFields: [],
+      });
+    } else {
+      // Garantir que todos os campos obrigatórios existem
+      if (currentStep.name === undefined) form.setValue(`steps.${stepIndex}.name`, "");
+      if (currentStep.description === undefined) form.setValue(`steps.${stepIndex}.description`, "");
+      if (currentStep.responsibleUserId === undefined) form.setValue(`steps.${stepIndex}.responsibleUserId`, 0);
+      if (!currentStep.formFields) form.setValue(`steps.${stepIndex}.formFields`, []);
+    }
   };
 
   const addNewFormField = () => {
@@ -195,14 +216,20 @@ export default function ProcessTemplateModal({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() =>
+                onClick={() => {
+                  const newStepIndex = steps.length;
                   addStep({
                     name: "",
                     description: "",
                     responsibleUserId: 0,
                     formFields: [],
-                  })
-                }
+                  });
+                  // Automatically switch to the new step
+                  setTimeout(() => {
+                    ensureStepDefaults(newStepIndex);
+                    handleStepChange(newStepIndex);
+                  }, 0);
+                }}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Etapa
@@ -221,7 +248,10 @@ export default function ProcessTemplateModal({
                       className={`cursor-pointer transition-colors ${
                         activeStepIndex === index ? "ring-2 ring-blue-500 bg-blue-50" : ""
                       }`}
-                      onClick={() => handleStepChange(index)}
+                      onClick={() => {
+                        ensureStepDefaults(index);
+                        handleStepChange(index);
+                      }}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
@@ -275,17 +305,26 @@ export default function ProcessTemplateModal({
                     <div>
                       <Label htmlFor={`step-name-${activeStepIndex}`}>Nome da Etapa</Label>
                       <Input
+                        key={`step-name-${activeStepIndex}`}
                         id={`step-name-${activeStepIndex}`}
-                        {...form.register(`steps.${activeStepIndex}.name`)}
+                        value={form.watch(`steps.${activeStepIndex}.name`) || ""}
+                        onChange={(e) => form.setValue(`steps.${activeStepIndex}.name`, e.target.value)}
                         placeholder="Ex: Revisão do Gerente"
                       />
+                      {form.formState.errors.steps?.[activeStepIndex]?.name && (
+                        <p className="text-sm text-red-600">
+                          {form.formState.errors.steps[activeStepIndex]?.name?.message}
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <Label htmlFor={`step-description-${activeStepIndex}`}>Descrição</Label>
                       <Textarea
+                        key={`step-description-${activeStepIndex}`}
                         id={`step-description-${activeStepIndex}`}
-                        {...form.register(`steps.${activeStepIndex}.description`)}
+                        value={form.watch(`steps.${activeStepIndex}.description`) || ""}
+                        onChange={(e) => form.setValue(`steps.${activeStepIndex}.description`, e.target.value)}
                         placeholder="Descreva o que deve ser feito nesta etapa..."
                       />
                     </div>
@@ -293,6 +332,7 @@ export default function ProcessTemplateModal({
                     <div>
                       <Label htmlFor={`step-responsible-${activeStepIndex}`}>Responsável</Label>
                       <Select
+                        key={`step-responsible-${activeStepIndex}`}
                         value={form.watch(`steps.${activeStepIndex}.responsibleUserId`)?.toString() || ""}
                         onValueChange={(value) =>
                           form.setValue(`steps.${activeStepIndex}.responsibleUserId`, parseInt(value))
@@ -309,6 +349,11 @@ export default function ProcessTemplateModal({
                           ))}
                         </SelectContent>
                       </Select>
+                      {form.formState.errors.steps?.[activeStepIndex]?.responsibleUserId && (
+                        <p className="text-sm text-red-600">
+                          {form.formState.errors.steps[activeStepIndex]?.responsibleUserId?.message}
+                        </p>
+                      )}
                     </div>
 
                     <Separator />
@@ -332,20 +377,27 @@ export default function ProcessTemplateModal({
                       </p>
 
                       <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {formFields.length === 0 ? (
+                        {(form.watch(`steps.${activeStepIndex}.formFields`) || []).length === 0 ? (
                           <div className="text-center py-6 text-muted-foreground">
                             <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                             <p className="text-sm">Nenhum campo personalizado criado</p>
                             <p className="text-xs">Clique em "Adicionar Campo" para criar formulários personalizados</p>
                           </div>
                         ) : (
-                          formFields.map((field, fieldIndex) => (
-                            <Card key={`${activeStepIndex}-${field.id}-${fieldIndex}`} className="p-3">
+                          (form.watch(`steps.${activeStepIndex}.formFields`) || []).map((field, fieldIndex) => (
+                            <Card key={`step-${activeStepIndex}-field-${fieldIndex}-${field.id}`} className="p-3">
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                   <Input
+                                    key={`field-label-${activeStepIndex}-${fieldIndex}`}
                                     placeholder="Ex: Valor do Orçamento, Parecer Técnico..."
-                                    {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.label`)}
+                                    value={field.label || ""}
+                                    onChange={(e) => {
+                                      const currentFields = form.getValues(`steps.${activeStepIndex}.formFields`) || [];
+                                      const newFields = [...currentFields];
+                                      newFields[fieldIndex] = { ...newFields[fieldIndex], label: e.target.value };
+                                      form.setValue(`steps.${activeStepIndex}.formFields`, newFields);
+                                    }}
                                     className="flex-1"
                                   />
                                   <Button
@@ -366,10 +418,14 @@ export default function ProcessTemplateModal({
                                   <div className="flex items-center space-x-2">
                                     <Label className="text-xs">Tipo:</Label>
                                     <Select
-                                      value={form.watch(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`)}
-                                      onValueChange={(value) =>
-                                        form.setValue(`steps.${activeStepIndex}.formFields.${fieldIndex}.type`, value as any)
-                                      }
+                                      key={`field-type-${activeStepIndex}-${fieldIndex}`}
+                                      value={field.type || "text"}
+                                      onValueChange={(value) => {
+                                        const currentFields = form.getValues(`steps.${activeStepIndex}.formFields`) || [];
+                                        const newFields = [...currentFields];
+                                        newFields[fieldIndex] = { ...newFields[fieldIndex], type: value as any };
+                                        form.setValue(`steps.${activeStepIndex}.formFields`, newFields);
+                                      }}
                                     >
                                       <SelectTrigger className="w-32">
                                         <SelectValue />
@@ -385,9 +441,16 @@ export default function ProcessTemplateModal({
                                   </div>
                                   <div className="flex items-center space-x-2">
                                     <input
+                                      key={`field-required-${activeStepIndex}-${fieldIndex}`}
                                       type="checkbox"
                                       id={`required-${activeStepIndex}-${fieldIndex}`}
-                                      {...form.register(`steps.${activeStepIndex}.formFields.${fieldIndex}.required`)}
+                                      checked={field.required || false}
+                                      onChange={(e) => {
+                                        const currentFields = form.getValues(`steps.${activeStepIndex}.formFields`) || [];
+                                        const newFields = [...currentFields];
+                                        newFields[fieldIndex] = { ...newFields[fieldIndex], required: e.target.checked };
+                                        form.setValue(`steps.${activeStepIndex}.formFields`, newFields);
+                                      }}
                                     />
                                     <Label htmlFor={`required-${activeStepIndex}-${fieldIndex}`} className="text-xs">
                                       Campo obrigatório
