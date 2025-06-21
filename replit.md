@@ -139,6 +139,8 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 16, 2025: Implemented company-based access control for admin users (admins only see data from users sharing same companies)
 - June 21, 2025: Created comprehensive Processes module with template creation, dynamic forms, and workflow management
 - June 21, 2025: Removed admin restrictions from Processes module - all users can now create and manage process templates
+- June 21, 2025: Fixed API request issues in Processes module by replacing apiRequest with direct fetch calls
+- June 21, 2025: Implemented complete isolation between process steps - each step has unique details and form fields
 
 ## User Preferences
 
