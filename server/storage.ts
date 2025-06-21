@@ -149,6 +149,10 @@ export class MemStorage implements IStorage {
     this.kanbanStages = new Map();
     this.tasks = new Map();
     this.checklistItems = new Map();
+    this.processTemplates = new Map();
+    this.processSteps = new Map();
+    this.processInstances = new Map();
+    this.processStepInstances = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
     this.currentClientId = 1;
@@ -156,6 +160,10 @@ export class MemStorage implements IStorage {
     this.currentStageId = 1;
     this.currentTaskId = 1;
     this.currentChecklistItemId = 1;
+    this.currentProcessTemplateId = 1;
+    this.currentProcessStepId = 1;
+    this.currentProcessInstanceId = 1;
+    this.currentProcessStepInstanceId = 1;
 
     // Create master admin user
     this.createMasterUser();
