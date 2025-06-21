@@ -238,18 +238,10 @@ export default function Processos() {
 
   const canExecuteTask = (task: any) => {
     if (task.status === "completed") return false;
+    if (task.status === "waiting") return false; // Cannot execute waiting tasks
     
-    // Check if this is the first step (order 1) or if previous steps are completed
-    if (task.stepOrder === 1) return true;
-    
-    // Check if all previous steps in the same process are completed
-    const sameProcessTasks = myTasks.filter(t => 
-      t.processInstanceId === task.processInstanceId && 
-      t.stepOrder < task.stepOrder
-    );
-    
-    const allPreviousCompleted = sameProcessTasks.every(t => t.status === "completed");
-    return allPreviousCompleted;
+    // Only pending and in_progress tasks can be executed
+    return task.status === "pending" || task.status === "in_progress";
   };
 
   const getBlockedReason = (task: any) => {
@@ -257,16 +249,8 @@ export default function Processos() {
       return "Esta etapa já foi executada";
     }
     
-    if (task.stepOrder > 1) {
-      const sameProcessTasks = myTasks.filter(t => 
-        t.processInstanceId === task.processInstanceId && 
-        t.stepOrder < task.stepOrder
-      );
-      
-      const incompletePrevious = sameProcessTasks.filter(t => t.status !== "completed");
-      if (incompletePrevious.length > 0) {
-        return `Você deve executar a etapa ${incompletePrevious[0].stepOrder} antes desta`;
-      }
+    if (task.status === "waiting") {
+      return "Aguardando conclusão da etapa anterior";
     }
     
     return "";
@@ -279,6 +263,7 @@ export default function Processos() {
       cancelled: { label: "Cancelado", variant: "destructive" as const },
       pending: { label: "Pendente", variant: "outline" as const },
       in_progress: { label: "Em Andamento", variant: "default" as const },
+      waiting: { label: "Aguardando", variant: "secondary" as const },
     };
     
     const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, variant: "outline" as const };
@@ -472,10 +457,11 @@ export default function Processos() {
                     <Button 
                       className="w-full"
                       onClick={() => handleExecuteTask(task)}
-                      disabled={task.status === "completed"}
+                      disabled={!canExecuteTask(task)}
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      {task.status === "completed" ? "Já Executada" : "Executar Tarefa"}
+                      {task.status === "completed" ? "Já Executada" : 
+                       task.status === "waiting" ? "Aguardando" : "Executar Tarefa"}
                     </Button>
                   </CardContent>
                 </Card>

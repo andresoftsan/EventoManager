@@ -968,13 +968,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const instance = await storage.createProcessInstance(instanceData);
 
-      // Create step instances for all steps
+      // Create step instances for all steps - only first step is pending
       for (const step of steps) {
         const stepInstanceData = {
           processInstanceId: instance.id,
           stepId: step.id,
           assignedUserId: step.responsibleUserId,
-          status: step.order === 1 ? "pending" : "pending",
+          status: step.order === 1 ? "pending" : "waiting", // Only first step is pending
           formData: {},
         };
         
