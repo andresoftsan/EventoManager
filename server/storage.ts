@@ -102,6 +102,7 @@ export interface IStorage {
 
   // Process Instance methods
   getProcessInstance(id: number): Promise<ProcessInstance | undefined>;
+  getProcessInstanceByNumber(processNumber: string): Promise<ProcessInstance | undefined>;
   getAllProcessInstances(): Promise<ProcessInstance[]>;
   getProcessInstancesByUserId(userId: number): Promise<ProcessInstance[]>;
   createProcessInstance(instance: InsertProcessInstance): Promise<ProcessInstance>;
@@ -139,6 +140,7 @@ export class MemStorage implements IStorage {
   private currentProcessTemplateId: number;
   private currentProcessStepId: number;
   private currentProcessInstanceId: number;
+  private processCounter: number;
   private currentProcessStepInstanceId: number;
 
   constructor() {
@@ -164,6 +166,7 @@ export class MemStorage implements IStorage {
     this.currentProcessStepId = 1;
     this.currentProcessInstanceId = 1;
     this.currentProcessStepInstanceId = 1;
+    this.processCounter = 1;
 
     // Create master admin user
     this.createMasterUser();
@@ -565,6 +568,10 @@ export class MemStorage implements IStorage {
 
   async getAllProcessInstances(): Promise<ProcessInstance[]> {
     return Array.from(this.processInstances.values());
+  }
+
+  async getProcessInstanceByNumber(processNumber: string): Promise<ProcessInstance | undefined> {
+    return Array.from(this.processInstances.values()).find(instance => instance.processNumber === processNumber);
   }
 
   async getProcessInstancesByUserId(userId: number): Promise<ProcessInstance[]> {

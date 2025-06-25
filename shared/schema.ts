@@ -94,6 +94,7 @@ export const processSteps = pgTable("process_steps", {
 // Process Instances (actual running processes)
 export const processInstances = pgTable("process_instances", {
   id: serial("id").primaryKey(),
+  processNumber: text("process_number").notNull().unique(), // Unique process number for consultation
   templateId: integer("template_id").notNull().references(() => processTemplates.id),
   clientId: integer("client_id").notNull().references(() => clients.id),
   name: text("name").notNull(),

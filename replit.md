@@ -146,6 +146,8 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 21, 2025: Added status management (pending/waiting/in_progress/completed) for proper workflow control
 - June 21, 2025: Added client selection when starting processes - all processes now require a client association
 - June 21, 2025: Created StartProcessModal for client selection with process template details
+- June 25, 2025: Implemented unique process numbering system (PROC-YYYY-NNNNNN) for easy consultation
+- June 25, 2025: Added process search functionality by process number
 
 ## User Preferences
 

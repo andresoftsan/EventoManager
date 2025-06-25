@@ -914,6 +914,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== PROCESS INSTANCE ROUTES =====
   
+  // Get process instance by number
+  app.get("/api/process-instances/number/:processNumber", requireAuth, async (req, res) => {
+    try {
+      const { processNumber } = req.params;
+      const instance = await storage.getProcessInstanceByNumber(processNumber);
+      
+      if (!instance) {
+        return res.status(404).json({ message: "Processo não encontrado" });
+      }
+
+      const template = await storage.getProcessTemplate(instance.templateId);
+      const client = await storage.getClient(instance.clientId);
+      const starter = await storage.getUser(instance.startedBy);
+      const currentStep = instance.currentStepId ? await storage.getProcessStep(instance.currentStepId) : null;
+      
+      const instanceWithDetails = {
+        ...instance,
+        templateName: template?.name || "Modelo desconhecido",
+        clientName: client?.name || "Cliente desconhecido",
+        startedByName: starter?.name || "Usuário desconhecido",
+        currentStepName: currentStep?.name
+      };
+
+      res.json(instanceWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar processo" });
+    }
+  });
+  
   // Get all process instances
   app.get("/api/process-instances", requireAuth, async (req, res) => {
     try {
@@ -970,7 +999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instanceData = {
         templateId,
         clientId,
-        name: `${template.name} - ${client.name} - ${new Date().toLocaleDateString('pt-BR')}`,
+        name: `${template.name} - ${client.name}`,
         startedBy: req.session.userId!,
         currentStepId: steps[0].id,
       };

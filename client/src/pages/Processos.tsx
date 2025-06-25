@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Play, Users, FileText, Settings } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Users, FileText, Settings, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
@@ -41,6 +43,9 @@ export default function Processos() {
   const [isStartProcessModalOpen, setIsStartProcessModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [searchNumber, setSearchNumber] = useState("");
+  const [searchResult, setSearchResult] = useState<ProcessInstanceWithDetails | null>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Fetch process templates
   const {
@@ -206,6 +211,39 @@ export default function Processos() {
 
   const handleConfirmStartProcess = (templateId: number, clientId: number) => {
     startProcessMutation.mutate({ templateId, clientId });
+  };
+
+  // Search process by number
+  const searchProcessMutation = useMutation({
+    mutationFn: async (processNumber: string) => {
+      const response = await fetch(`/api/process-instances/number/${processNumber}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Processo não encontrado");
+        }
+        throw new Error("Erro ao buscar processo");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setSearchResult(data);
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Erro na busca", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      setSearchResult(null);
+    },
+  });
+
+  const handleSearch = () => {
+    if (searchNumber.trim()) {
+      searchProcessMutation.mutate(searchNumber.trim());
+    }
   };
 
   // Execute process step mutation
@@ -404,7 +442,7 @@ export default function Processos() {
                       <div>
                         <CardTitle className="text-lg">{instance.name}</CardTitle>
                         <CardDescription>
-                          Modelo: {instance.templateName}
+                          Número: {instance.processNumber} • Modelo: {instance.templateName}
                         </CardDescription>
                       </div>
                       {getStatusBadge(instance.status)}
