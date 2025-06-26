@@ -633,7 +633,9 @@ export default function Processos() {
       <ProcessTemplateModal
         open={isTemplateModalOpen}
         onOpenChange={setIsTemplateModalOpen}
-        onSave={async (data) => createTemplateMutation.mutate(data)}
+        onSave={(data) => {
+          createTemplateMutation.mutate(data);
+        }}
       />
 
       <ProcessStepExecutionModal
