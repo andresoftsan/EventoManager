@@ -176,10 +176,10 @@ export default function Processos() {
 
   // Update process template mutation
   const updateTemplateMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Updating template with data:", data, "ID:", editingTemplate?.id);
+    mutationFn: async ({ data, templateId }: { data: any, templateId: number }) => {
+      console.log("Updating template with data:", data, "ID:", templateId);
       
-      const response = await fetch(`/api/process-templates/${editingTemplate.id}`, {
+      const response = await fetch(`/api/process-templates/${templateId}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -369,9 +369,12 @@ export default function Processos() {
   };
 
   const handleSaveTemplate = (data: any) => {
-    if (editingTemplate) {
-      updateTemplateMutation.mutate(data);
+    console.log("handleSaveTemplate called with:", { data, editingTemplate });
+    if (editingTemplate && editingTemplate.id) {
+      console.log("Calling updateTemplateMutation with template ID:", editingTemplate.id);
+      updateTemplateMutation.mutate({ data, templateId: editingTemplate.id });
     } else {
+      console.log("Calling createTemplateMutation");
       createTemplateMutation.mutate(data);
     }
   };
