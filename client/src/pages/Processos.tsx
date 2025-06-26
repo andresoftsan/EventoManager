@@ -29,8 +29,10 @@ interface ProcessInstanceWithDetails extends ProcessInstance {
 
 interface ProcessStepInstanceWithDetails extends ProcessStepInstance {
   processName: string;
+  processNumber: string;
   stepName: string;
   templateName: string;
+  clientName: string;
 }
 
 export default function Processos() {
@@ -46,6 +48,8 @@ export default function Processos() {
   const [searchNumber, setSearchNumber] = useState("");
   const [searchResult, setSearchResult] = useState<ProcessInstanceWithDetails | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [instancesSearchTerm, setInstancesSearchTerm] = useState("");
+  const [tasksSearchTerm, setTasksSearchTerm] = useState("");
 
   // Fetch process templates
   const {
@@ -246,6 +250,29 @@ export default function Processos() {
     }
   };
 
+  // Filter functions
+  const filteredInstances = processInstances.filter(instance => {
+    const searchLower = instancesSearchTerm.toLowerCase();
+    return (
+      instance.processNumber?.toLowerCase().includes(searchLower) ||
+      instance.name.toLowerCase().includes(searchLower) ||
+      instance.clientName.toLowerCase().includes(searchLower) ||
+      instance.currentStepName?.toLowerCase().includes(searchLower) ||
+      instance.templateName.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const filteredTasks = myTasks.filter(task => {
+    const searchLower = tasksSearchTerm.toLowerCase();
+    return (
+      task.processNumber?.toLowerCase().includes(searchLower) ||
+      task.processName.toLowerCase().includes(searchLower) ||
+      task.stepName.toLowerCase().includes(searchLower) ||
+      task.clientName.toLowerCase().includes(searchLower) ||
+      task.templateName.toLowerCase().includes(searchLower)
+    );
+  });
+
   // Execute process step mutation
   const executeStepMutation = useMutation({
     mutationFn: async ({ stepInstanceId, formData, notes }: { stepInstanceId: number, formData: Record<string, any>, notes?: string }) => {
@@ -421,21 +448,35 @@ export default function Processos() {
         </TabsContent>
 
         <TabsContent value="instances" className="space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Buscar por número, cliente, etapa ou nome..."
+              value={instancesSearchTerm}
+              onChange={(e) => setInstancesSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          
           {instancesLoading ? (
             <div className="text-center py-8">Carregando processos...</div>
-          ) : processInstances.length === 0 ? (
+          ) : filteredInstances.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Play className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum processo ativo</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  {instancesSearchTerm ? "Nenhum processo encontrado" : "Nenhum processo ativo"}
+                </h3>
                 <p className="text-muted-foreground text-center">
-                  Inicie um processo a partir de um modelo
+                  {instancesSearchTerm 
+                    ? "Tente ajustar os termos de busca" 
+                    : "Inicie um processo a partir de um modelo"
+                  }
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {processInstances.map((instance) => (
+              {filteredInstances.map((instance) => (
                 <Card key={instance.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -475,9 +516,18 @@ export default function Processos() {
         </TabsContent>
 
         <TabsContent value="my-tasks" className="space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Buscar por número do processo, cliente, etapa..."
+              value={tasksSearchTerm}
+              onChange={(e) => setTasksSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          
           {tasksLoading ? (
             <div className="text-center py-8">Carregando tarefas...</div>
-          ) : myTasks.length === 0 ? (
+          ) : filteredTasks.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />

@@ -148,6 +148,8 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 21, 2025: Created StartProcessModal for client selection with process template details
 - June 25, 2025: Implemented unique process numbering system (PROC-YYYY-NNNNNN) for easy consultation
 - June 25, 2025: Added process search functionality by process number
+- June 25, 2025: Added process number display in active processes and task tabs
+- June 25, 2025: Implemented search functionality by number, client, step and template name in process instances and tasks
 
 ## User Preferences
 

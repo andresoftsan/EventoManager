@@ -932,7 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instanceWithDetails = {
         ...instance,
         templateName: template?.name || "Modelo desconhecido",
-        clientName: client?.name || "Cliente desconhecido",
+        clientName: client?.razaoSocial || "Cliente desconhecido",
         startedByName: starter?.name || "Usuário desconhecido",
         currentStepName: currentStep?.name
       };
@@ -958,7 +958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             ...instance,
             templateName: template?.name || "Modelo desconhecido",
-            clientName: client?.name || "Cliente desconhecido",
+            clientName: client?.razaoSocial || "Cliente desconhecido",
             startedByName: starter?.name || "Usuário desconhecido",
             currentStepName: currentStep?.name
           };
@@ -999,7 +999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instanceData = {
         templateId,
         clientId,
-        name: `${template.name} - ${client.name}`,
+        name: `${template.name} - ${client.razaoSocial}`,
         startedBy: req.session.userId!,
         currentStepId: steps[0].id,
       };
@@ -1042,12 +1042,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const step = await storage.getProcessStep(task.stepId);
           const processInstance = await storage.getProcessInstance(task.processInstanceId);
           const template = processInstance ? await storage.getProcessTemplate(processInstance.templateId) : null;
+          const client = processInstance ? await storage.getClient(processInstance.clientId) : null;
           
           return {
             ...task,
             stepName: step?.name || "Etapa desconhecida",
             processName: processInstance?.name || "Processo desconhecido",
+            processNumber: processInstance?.processNumber || "N/A",
             templateName: template?.name || "Modelo desconhecido",
+            clientName: client?.razaoSocial || "Cliente desconhecido",
             stepOrder: step?.order || 0,
             formFields: step?.formFields || []
           };
