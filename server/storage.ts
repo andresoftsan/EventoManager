@@ -10,6 +10,7 @@ import {
   processSteps,
   processInstances,
   processStepInstances,
+  processTemplateUserAccess,
   type User, 
   type InsertUser, 
   type Event, 
@@ -31,7 +32,9 @@ import {
   type ProcessInstance,
   type InsertProcessInstance,
   type ProcessStepInstance,
-  type InsertProcessStepInstance
+  type InsertProcessStepInstance,
+  type ProcessTemplateUserAccess,
+  type InsertProcessTemplateUserAccess
 } from "@shared/schema";
 
 export interface IStorage {
@@ -116,6 +119,13 @@ export interface IStorage {
   createProcessStepInstance(stepInstance: InsertProcessStepInstance): Promise<ProcessStepInstance>;
   updateProcessStepInstance(id: number, stepInstance: Partial<InsertProcessStepInstance>): Promise<ProcessStepInstance | undefined>;
   deleteProcessStepInstance(id: number): Promise<boolean>;
+
+  // Process Template User Access methods
+  getProcessTemplateUserAccess(templateId: number): Promise<ProcessTemplateUserAccess[]>;
+  addProcessTemplateUserAccess(access: InsertProcessTemplateUserAccess): Promise<ProcessTemplateUserAccess>;
+  removeProcessTemplateUserAccess(templateId: number, userId: number): Promise<boolean>;
+  checkProcessTemplateUserAccess(templateId: number, userId: number): Promise<boolean>;
+  getAccessibleProcessTemplates(userId: number): Promise<ProcessTemplate[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -130,6 +140,7 @@ export class MemStorage implements IStorage {
   private processSteps: Map<number, ProcessStep>;
   private processInstances: Map<number, ProcessInstance>;
   private processStepInstances: Map<number, ProcessStepInstance>;
+  private processTemplateUserAccess: Map<number, ProcessTemplateUserAccess>;
   private currentUserId: number;
   private currentEventId: number;
   private currentClientId: number;
@@ -142,6 +153,7 @@ export class MemStorage implements IStorage {
   private currentProcessInstanceId: number;
   private processCounter: number;
   private currentProcessStepInstanceId: number;
+  private currentProcessTemplateUserAccessId: number;
 
   constructor() {
     this.users = new Map();
@@ -155,6 +167,7 @@ export class MemStorage implements IStorage {
     this.processSteps = new Map();
     this.processInstances = new Map();
     this.processStepInstances = new Map();
+    this.processTemplateUserAccess = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
     this.currentClientId = 1;
