@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date, json, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -118,6 +118,16 @@ export const processStepInstances = pgTable("process_step_instances", {
   notes: text("notes"),
 });
 
+// Process Template User Access (which users can start which processes)
+export const processTemplateUserAccess = pgTable("process_template_user_access", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => processTemplates.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueAccess: unique().on(table.templateId, table.userId), // Prevent duplicate access entries
+}));
+
 // Schemas de inserção
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -179,6 +189,11 @@ export const insertProcessStepInstanceSchema = createInsertSchema(processStepIns
   completedAt: true,
 });
 
+export const insertProcessTemplateUserAccessSchema = createInsertSchema(processTemplateUserAccess).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Tipos
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -202,6 +217,8 @@ export type InsertProcessInstance = z.infer<typeof insertProcessInstanceSchema>;
 export type ProcessInstance = typeof processInstances.$inferSelect;
 export type InsertProcessStepInstance = z.infer<typeof insertProcessStepInstanceSchema>;
 export type ProcessStepInstance = typeof processStepInstances.$inferSelect;
+export type InsertProcessTemplateUserAccess = z.infer<typeof insertProcessTemplateUserAccessSchema>;
+export type ProcessTemplateUserAccess = typeof processTemplateUserAccess.$inferSelect;
 
 // Schema de login
 export const loginSchema = z.object({
