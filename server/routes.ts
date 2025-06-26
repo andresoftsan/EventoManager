@@ -1114,6 +1114,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete process instance (admin only)
+  app.delete("/api/process-instances/:id", requireAuth, async (req, res) => {
+    try {
+      const sessionData = req.session as any;
+      const user = await storage.getUser(sessionData.userId!);
+      
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem excluir processos." });
+      }
+
+      const id = parseInt(req.params.id);
+      
+      // Delete all step instances first
+      const stepInstances = await storage.getProcessStepInstancesByProcessId(id);
+      for (const stepInstance of stepInstances) {
+        await storage.deleteProcessStepInstance(stepInstance.id);
+      }
+      
+      // Delete the process instance
+      const success = await storage.deleteProcessInstance(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Processo não encontrado" });
+      }
+
+      res.json({ message: "Processo excluído com sucesso" });
+    } catch (error) {
+      console.error("Error deleting process instance:", error);
+      res.status(500).json({ message: "Erro ao excluir processo" });
+    }
+  });
+
   // ===== PROCESS STEP INSTANCE ROUTES =====
   
   // Get all step instances for a specific process

@@ -258,6 +258,40 @@ export default function Processos() {
     },
   });
 
+  // Delete process instance mutation (admin only)
+  const deleteProcessMutation = useMutation({
+    mutationFn: async (processId: number) => {
+      const response = await fetch(`/api/process-instances/${processId}`, {
+        method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Erro ao excluir processo: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/process-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/process-step-instances/my-tasks"] });
+      toast({ title: "Processo excluído com sucesso!" });
+    },
+    onError: (error) => {
+      console.error("Error deleting process:", error);
+      toast({ 
+        title: "Erro ao excluir processo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   const handleDeleteTemplate = (id: number, name: string) => {
     if (!authData?.user?.isAdmin) {
       toast({ 
@@ -282,6 +316,23 @@ export default function Processos() {
 
   const handleConfirmStartProcess = (templateId: number, clientId: number) => {
     startProcessMutation.mutate({ templateId, clientId });
+  };
+
+  const handleDeleteProcess = (id: number, processNumber: string, name: string) => {
+    if (!authData?.user?.isAdmin) {
+      toast({ 
+        title: "Acesso negado", 
+        description: "Apenas administradores podem excluir processos.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    const confirmMessage = `Tem certeza que deseja excluir o processo "${processNumber} - ${name}"?\n\nEsta ação não pode ser desfeita e todos os dados do processo serão perdidos.`;
+    
+    if (confirm(confirmMessage)) {
+      deleteProcessMutation.mutate(id);
+    }
   };
 
   // Search process by number
@@ -645,15 +696,27 @@ export default function Processos() {
                         </div>
                       )}
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full mt-4"
-                      onClick={() => handleViewSteps(instance)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Etapas do Processo
-                    </Button>
+                    <div className="flex gap-2 mt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleViewSteps(instance)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Etapas do Processo
+                      </Button>
+                      {authData?.user?.isAdmin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteProcess(instance.id, instance.processNumber || '', instance.name)}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
