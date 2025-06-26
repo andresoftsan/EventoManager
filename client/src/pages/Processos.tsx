@@ -54,7 +54,7 @@ export default function Processos() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [instancesSearchTerm, setInstancesSearchTerm] = useState("");
   const [tasksSearchTerm, setTasksSearchTerm] = useState("");
-  const [selectedUserFilter, setSelectedUserFilter] = useState("");
+  const [selectedUserFilter, setSelectedUserFilter] = useState("all");
   const [selectedProcessForSteps, setSelectedProcessForSteps] = useState<ProcessInstanceWithDetails | null>(null);
   const [isStepsModalOpen, setIsStepsModalOpen] = useState(false);
   const [selectedProcessForReport, setSelectedProcessForReport] = useState<ProcessInstanceWithDetails | null>(null);
@@ -410,7 +410,7 @@ export default function Processos() {
     );
 
     // Filter by user if selected
-    const userMatch = !selectedUserFilter || instance.startedBy.toString() === selectedUserFilter;
+    const userMatch = selectedUserFilter === "all" || instance.startedBy.toString() === selectedUserFilter;
 
     return searchMatch && userMatch;
   });
@@ -695,7 +695,7 @@ export default function Processos() {
                 <SelectValue placeholder="Filtrar por usuário" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os usuários</SelectItem>
+                <SelectItem value="all">Todos os usuários</SelectItem>
                 {allUsers.map((user) => (
                   <SelectItem key={user.id} value={user.id.toString()}>
                     {user.name}
