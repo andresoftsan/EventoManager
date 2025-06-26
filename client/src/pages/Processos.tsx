@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +15,7 @@ import ProcessTemplateModal from "@/components/ProcessTemplateModal";
 import ProcessStepExecutionModal from "@/components/ProcessStepExecutionModal";
 import StartProcessModal from "@/components/StartProcessModal";
 import ProcessReportModal from "@/components/ProcessReportModal";
-import type { ProcessTemplate, ProcessInstance, ProcessStepInstance } from "@shared/schema";
+import type { ProcessTemplate, ProcessInstance, ProcessStepInstance, User } from "@shared/schema";
 
 interface ProcessTemplateWithSteps extends ProcessTemplate {
   stepsCount: number;
@@ -53,6 +54,7 @@ export default function Processos() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [instancesSearchTerm, setInstancesSearchTerm] = useState("");
   const [tasksSearchTerm, setTasksSearchTerm] = useState("");
+  const [selectedUserFilter, setSelectedUserFilter] = useState("");
   const [selectedProcessForSteps, setSelectedProcessForSteps] = useState<ProcessInstanceWithDetails | null>(null);
   const [isStepsModalOpen, setIsStepsModalOpen] = useState(false);
   const [selectedProcessForReport, setSelectedProcessForReport] = useState<ProcessInstanceWithDetails | null>(null);
@@ -80,6 +82,11 @@ export default function Processos() {
     isLoading: tasksLoading,
   } = useQuery<ProcessStepInstanceWithDetails[]>({
     queryKey: ["/api/process-step-instances/my-tasks"],
+  });
+
+  // Fetch users for filter
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
   });
 
   // Create process template mutation
@@ -394,13 +401,18 @@ export default function Processos() {
   // Filter functions
   const filteredInstances = processInstances.filter(instance => {
     const searchLower = instancesSearchTerm.toLowerCase();
-    return (
+    const searchMatch = (
       instance.processNumber?.toLowerCase().includes(searchLower) ||
       instance.name.toLowerCase().includes(searchLower) ||
       instance.clientName.toLowerCase().includes(searchLower) ||
       instance.currentStepName?.toLowerCase().includes(searchLower) ||
       instance.templateName.toLowerCase().includes(searchLower)
     );
+
+    // Filter by user if selected
+    const userMatch = !selectedUserFilter || instance.startedBy.toString() === selectedUserFilter;
+
+    return searchMatch && userMatch;
   });
 
   const filteredTasks = myTasks.filter(task => {
@@ -678,6 +690,19 @@ export default function Processos() {
               onChange={(e) => setInstancesSearchTerm(e.target.value)}
               className="max-w-md"
             />
+            <Select value={selectedUserFilter} onValueChange={setSelectedUserFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrar por usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os usuários</SelectItem>
+                {allUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id.toString()}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           {instancesLoading ? (
