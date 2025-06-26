@@ -201,11 +201,11 @@ export default function ProcessReportModal({
                   <div className="grid grid-cols-2 gap-4 text-sm print:text-xs">
                     <div>
                       <span className="text-muted-foreground">Responsável:</span>
-                      <p className="font-medium">{step.assignedUserName}</p>
+                      <p className="font-medium">{step.assignedUserName || 'Não informado'}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Status:</span>
-                      <p className="font-medium capitalize">{step.status.replace('_', ' ')}</p>
+                      <p className="font-medium capitalize">{(step.status || 'pending').replace('_', ' ')}</p>
                     </div>
                     {step.startedAt && (
                       <div>
@@ -234,20 +234,20 @@ export default function ProcessReportModal({
                   </div>
 
                   {/* Dados do Formulário */}
-                  {step.formFields.length > 0 && (
+                  {(step.formFields || []).length > 0 && (
                     <>
                       <Separator />
                       <div>
                         <h4 className="font-medium mb-3">Dados Preenchidos:</h4>
                         <div className="space-y-3">
-                          {step.formFields.map((field) => (
+                          {(step.formFields || []).map((field) => (
                             <div key={field.id} className="flex flex-col space-y-1">
                               <span className="text-sm font-medium text-muted-foreground">
-                                {field.label}
+                                {field.label || 'Campo sem rótulo'}
                                 {field.required && <span className="text-red-500 ml-1">*</span>}
                               </span>
                               <div className="text-sm p-2 bg-muted rounded">
-                                {formatFieldValue(field, step.formData[field.id])}
+                                {formatFieldValue(field, (step.formData || {})[field.id])}
                               </div>
                             </div>
                           ))}
@@ -257,7 +257,7 @@ export default function ProcessReportModal({
                   )}
 
                   {/* Notas */}
-                  {step.notes && (
+                  {step.notes && step.notes.trim() !== '' && (
                     <>
                       <Separator />
                       <div>
