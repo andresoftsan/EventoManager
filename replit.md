@@ -167,6 +167,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 26, 2025: Added requireAdmin middleware to user creation endpoint returning 403 error for non-admin users
 - June 26, 2025: Hid user registration form and edit buttons from non-admin users in Settings page
 - June 26, 2025: Created comprehensive user access control system preventing non-admin users from creating or editing other users
+- June 26, 2025: Fixed user listing bug where master admin couldn't see newly created users due to company filtering
+- June 26, 2025: Modified user access control to allow master admin (username "admin") to view all users regardless of company associations
+- June 26, 2025: Resolved cache invalidation issues by setting staleTime to 0 for immediate data refresh after mutations
 
 ## User Preferences
 
