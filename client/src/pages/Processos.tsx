@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Play, Users, FileText, Settings, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Users, FileText, Settings, Search, Eye, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
@@ -33,10 +33,11 @@ interface ProcessStepInstanceWithDetails extends ProcessStepInstance {
   stepName: string;
   templateName: string;
   clientName: string;
+  stepOrder: number;
 }
 
 export default function Processos() {
-  const { user } = useAuth();
+  const { data: authData } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("templates");
@@ -281,6 +282,19 @@ export default function Processos() {
     enabled: !!selectedProcessForSteps?.id,
   });
 
+  // Type the processSteps properly
+  const typedProcessSteps = processSteps as Array<{
+    id: number;
+    status: string;
+    stepName: string;
+    stepOrder: number;
+    stepDescription?: string;
+    assignedUserName: string;
+    completedAt?: string;
+    startedAt?: string;
+    notes?: string;
+  }>;
+
   const handleViewSteps = (processInstance: ProcessInstanceWithDetails) => {
     setSelectedProcessForSteps(processInstance);
     setIsStepsModalOpen(true);
@@ -521,6 +535,15 @@ export default function Processos() {
                         </div>
                       )}
                     </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full mt-4"
+                      onClick={() => handleViewSteps(instance)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Etapas do Processo
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -610,7 +633,7 @@ export default function Processos() {
       <ProcessTemplateModal
         open={isTemplateModalOpen}
         onOpenChange={setIsTemplateModalOpen}
-        onSave={createTemplateMutation.mutate}
+        onSave={async (data) => createTemplateMutation.mutate(data)}
       />
 
       <ProcessStepExecutionModal
@@ -655,7 +678,7 @@ export default function Processos() {
             <div className="text-center py-8">Carregando etapas...</div>
           ) : (
             <div className="space-y-3">
-              {processSteps.map((step: any, index: number) => (
+              {typedProcessSteps.map((step, index: number) => (
                 <Card key={step.id} className="relative">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -720,7 +743,7 @@ export default function Processos() {
                 </Card>
               ))}
               
-              {processSteps.length === 0 && (
+              {typedProcessSteps.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhuma etapa encontrada para este processo
                 </div>
