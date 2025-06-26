@@ -75,7 +75,8 @@ export default function Configuracoes() {
       const response = await apiRequest("POST", "/api/users", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("User created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       form.reset();
