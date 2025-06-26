@@ -34,6 +34,7 @@ const processTemplateSchema = z.object({
   name: z.string().min(1, "Nome do processo é obrigatório"),
   description: z.string().optional(),
   steps: z.array(processStepSchema).min(1, "Pelo menos uma etapa é obrigatória"),
+  authorizedUsers: z.array(z.number()).min(1, "Pelo menos um usuário deve ter acesso"),
 });
 
 type ProcessTemplateFormData = z.infer<typeof processTemplateSchema>;
@@ -63,6 +64,7 @@ export default function ProcessTemplateModal({
     defaultValues: {
       name: "",
       description: "",
+      authorizedUsers: [],
       steps: [
         {
           name: "",
@@ -238,6 +240,26 @@ export default function ProcessTemplateModal({
                 {...form.register("description")}
                 placeholder="Descreva o objetivo deste processo..."
               />
+            </div>
+
+            <div>
+              <Label>Usuários Autorizados a Iniciar Processo</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-3">
+                {users.map((user) => (
+                  <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      value={user.id}
+                      {...form.register("authorizedUsers")}
+                      className="rounded"
+                    />
+                    <span className="text-sm">{user.name}</span>
+                  </label>
+                ))}
+              </div>
+              {form.formState.errors.authorizedUsers && (
+                <p className="text-sm text-red-600 mt-1">{form.formState.errors.authorizedUsers.message}</p>
+              )}
             </div>
           </div>
 

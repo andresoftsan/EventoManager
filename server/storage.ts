@@ -179,6 +179,7 @@ export class MemStorage implements IStorage {
     this.currentProcessStepId = 1;
     this.currentProcessInstanceId = 1;
     this.currentProcessStepInstanceId = 1;
+    this.currentProcessTemplateUserAccessId = 1;
     this.processCounter = 1;
 
     // Create master admin user
@@ -668,6 +669,52 @@ export class MemStorage implements IStorage {
 
   async deleteProcessStepInstance(id: number): Promise<boolean> {
     return this.processStepInstances.delete(id);
+  }
+
+  // Process Template User Access methods
+  async getProcessTemplateUserAccess(templateId: number): Promise<ProcessTemplateUserAccess[]> {
+    return Array.from(this.processTemplateUserAccess.values()).filter(
+      access => access.templateId === templateId
+    );
+  }
+
+  async addProcessTemplateUserAccess(insertAccess: InsertProcessTemplateUserAccess): Promise<ProcessTemplateUserAccess> {
+    const access: ProcessTemplateUserAccess = {
+      id: this.currentProcessTemplateUserAccessId++,
+      templateId: insertAccess.templateId,
+      userId: insertAccess.userId,
+      createdAt: new Date()
+    };
+    
+    this.processTemplateUserAccess.set(access.id, access);
+    return access;
+  }
+
+  async removeProcessTemplateUserAccess(templateId: number, userId: number): Promise<boolean> {
+    const access = Array.from(this.processTemplateUserAccess.values()).find(
+      access => access.templateId === templateId && access.userId === userId
+    );
+    
+    if (access) {
+      return this.processTemplateUserAccess.delete(access.id);
+    }
+    return false;
+  }
+
+  async checkProcessTemplateUserAccess(templateId: number, userId: number): Promise<boolean> {
+    return Array.from(this.processTemplateUserAccess.values()).some(
+      access => access.templateId === templateId && access.userId === userId
+    );
+  }
+
+  async getAccessibleProcessTemplates(userId: number): Promise<ProcessTemplate[]> {
+    const accessibleTemplateIds = Array.from(this.processTemplateUserAccess.values())
+      .filter(access => access.userId === userId)
+      .map(access => access.templateId);
+
+    return Array.from(this.processTemplates.values()).filter(
+      template => accessibleTemplateIds.includes(template.id)
+    );
   }
 }
 

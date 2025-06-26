@@ -1383,6 +1383,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process Template User Access routes
+  app.get("/api/process-templates/:templateId/users", requireAuth, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.templateId);
+      const access = await storage.getProcessTemplateUserAccess(templateId);
+      
+      // Get user details for each access entry
+      const usersWithAccess = await Promise.all(
+        access.map(async (accessEntry) => {
+          const user = await storage.getUser(accessEntry.userId);
+          return user ? { id: user.id, name: user.name, username: user.username } : null;
+        })
+      );
+      
+      res.json(usersWithAccess.filter(user => user !== null));
+    } catch (error) {
+      console.error("Error getting template user access:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários com acesso" });
+    }
+  });
+
+  app.post("/api/process-templates/:templateId/users", requireAuth, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.templateId);
+      const { userId } = req.body;
+      
+      // Check if access already exists
+      const hasAccess = await storage.checkProcessTemplateUserAccess(templateId, userId);
+      if (hasAccess) {
+        return res.status(400).json({ message: "Usuário já possui acesso a este template" });
+      }
+      
+      const access = await storage.addProcessTemplateUserAccess({ templateId, userId });
+      res.status(201).json(access);
+    } catch (error) {
+      console.error("Error adding template user access:", error);
+      res.status(500).json({ message: "Erro ao adicionar acesso do usuário" });
+    }
+  });
+
+  app.delete("/api/process-templates/:templateId/users/:userId", requireAuth, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.templateId);
+      const userId = parseInt(req.params.userId);
+      
+      const removed = await storage.removeProcessTemplateUserAccess(templateId, userId);
+      if (removed) {
+        res.json({ message: "Acesso removido com sucesso" });
+      } else {
+        res.status(404).json({ message: "Acesso não encontrado" });
+      }
+    } catch (error) {
+      console.error("Error removing template user access:", error);
+      res.status(500).json({ message: "Erro ao remover acesso do usuário" });
+    }
+  });
+
+  // Get accessible process templates for current user
+  app.get("/api/process-templates/accessible", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      if (user?.isAdmin) {
+        // Admins can see all templates
+        const templates = await storage.getAllProcessTemplates();
+        res.json(templates);
+      } else {
+        // Regular users only see templates they have access to
+        const templates = await storage.getAccessibleProcessTemplates(userId);
+        res.json(templates);
+      }
+    } catch (error) {
+      console.error("Error getting accessible templates:", error);
+      res.status(500).json({ message: "Erro ao buscar templates acessíveis" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
