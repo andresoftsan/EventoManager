@@ -27,6 +27,7 @@ const processStepSchema = z.object({
   name: z.string().min(1, "Nome da etapa é obrigatório"),
   description: z.string().optional(),
   responsibleUserId: z.number().min(1, "Responsável é obrigatório"),
+  deadlineDays: z.number().min(1, "Prazo deve ser pelo menos 1 dia").default(7),
   formFields: z.array(formFieldSchema).default([]),
 });
 
@@ -70,6 +71,7 @@ export default function ProcessTemplateModal({
           name: "",
           description: "",
           responsibleUserId: 0,
+          deadlineDays: 7,
           formFields: [],
         },
       ],
@@ -92,12 +94,14 @@ export default function ProcessTemplateModal({
               name: step.name || "",
               description: step.description || "",
               responsibleUserId: step.responsibleUserId || 0,
+              deadlineDays: step.deadlineDays || 7,
               formFields: step.formFields || [],
             }))
           : [{
               name: "",
               description: "",
               responsibleUserId: 0,
+              deadlineDays: 7,
               formFields: [],
             }]
       };

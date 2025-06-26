@@ -87,6 +87,7 @@ export const processSteps = pgTable("process_steps", {
   description: text("description"),
   order: integer("order").notNull(),
   responsibleUserId: integer("responsible_user_id").notNull().references(() => users.id),
+  deadlineDays: integer("deadline_days").notNull().default(7), // Prazo em dias para executar a etapa
   formFields: json("form_fields").notNull().default([]), // Array of form field definitions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -115,6 +116,7 @@ export const processStepInstances = pgTable("process_step_instances", {
   formData: json("form_data").default({}), // Submitted form data
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  dueDate: timestamp("due_date"), // Data limite para executar a tarefa
   notes: text("notes"),
 });
 
