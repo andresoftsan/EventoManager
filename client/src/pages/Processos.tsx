@@ -278,7 +278,7 @@ export default function Processos() {
 
   // Fetch process steps for selected process
   const { data: processSteps = [], isLoading: stepsLoading } = useQuery({
-    queryKey: ["/api/process-instances", selectedProcessForSteps?.id, "steps"],
+    queryKey: [`/api/process-instances/${selectedProcessForSteps?.id}/steps`],
     enabled: !!selectedProcessForSteps?.id,
   });
 
