@@ -256,7 +256,15 @@ export default function ProcessTemplateModal({
                     <input
                       type="checkbox"
                       value={user.id}
-                      {...form.register("authorizedUsers")}
+                      checked={form.watch("authorizedUsers")?.includes(user.id) || false}
+                      onChange={(e) => {
+                        const currentUsers = form.getValues("authorizedUsers") || [];
+                        if (e.target.checked) {
+                          form.setValue("authorizedUsers", [...currentUsers, user.id]);
+                        } else {
+                          form.setValue("authorizedUsers", currentUsers.filter(id => id !== user.id));
+                        }
+                      }}
                       className="rounded"
                     />
                     <span className="text-sm">{user.name}</span>
@@ -537,10 +545,20 @@ export default function ProcessTemplateModal({
             <Button 
               type="submit" 
               disabled={form.formState.isSubmitting}
-              onClick={() => {
+              onClick={(e) => {
                 console.log("Submit button clicked");
                 console.log("Form errors before submit:", form.formState.errors);
                 console.log("Form values before submit:", form.getValues());
+                console.log("Form is valid:", form.formState.isValid);
+                console.log("Form dirty fields:", form.formState.dirtyFields);
+                
+                // Trigger validation manually
+                form.trigger().then((isValid) => {
+                  console.log("Manual validation result:", isValid);
+                  if (!isValid) {
+                    console.log("Form validation failed, errors:", form.formState.errors);
+                  }
+                });
               }}
             >
               {form.formState.isSubmitting 
