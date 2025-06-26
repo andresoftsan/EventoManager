@@ -79,30 +79,6 @@ export default function Processos() {
     queryKey: ["/api/process-step-instances/my-tasks"],
   });
 
-  // Delete process template mutation
-  const deleteTemplateMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/process-templates/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error("Erro ao excluir modelo de processo");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
-      toast({ title: "Modelo de processo excluído com sucesso!" });
-    },
-    onError: () => {
-      toast({ 
-        title: "Erro ao excluir modelo de processo", 
-        variant: "destructive" 
-      });
-    },
-  });
-
   // Create process template mutation
   const createTemplateMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -211,6 +187,39 @@ export default function Processos() {
       console.error("Error updating template:", error);
       toast({ 
         title: "Erro ao atualizar modelo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Delete process template mutation (admin only)
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (templateId: number) => {
+      const response = await fetch(`/api/process-templates/${templateId}`, {
+        method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Erro ao excluir modelo de processo: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
+      toast({ title: "Modelo de processo excluído com sucesso!" });
+    },
+    onError: (error) => {
+      console.error("Error deleting template:", error);
+      toast({ 
+        title: "Erro ao excluir modelo", 
         description: error.message,
         variant: "destructive" 
       });

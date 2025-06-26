@@ -958,10 +958,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete process template
+  // Delete process template (admin only)
   app.delete("/api/process-templates/:id", requireAuth, async (req, res) => {
     try {
+      const sessionData = req.session as any;
+      const user = await storage.getUser(sessionData.userId!);
+      
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem excluir modelos de processo." });
+      }
+
       const id = parseInt(req.params.id);
+      
+      // Check if template has active process instances
+      const allInstances = await storage.getAllProcessInstances();
+      const hasActiveInstances = allInstances.some(instance => 
+        instance.templateId === id && instance.status !== 'completed'
+      );
+      
+      if (hasActiveInstances) {
+        return res.status(400).json({ 
+          message: "Não é possível excluir este modelo pois existem processos ativos vinculados a ele." 
+        });
+      }
+      
+      // Delete all steps first
+      const steps = await storage.getProcessStepsByTemplateId(id);
+      for (const step of steps) {
+        await storage.deleteProcessStep(step.id);
+      }
+      
       const success = await storage.deleteProcessTemplate(id);
       
       if (!success) {
@@ -970,6 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Modelo de processo excluído com sucesso" });
     } catch (error) {
+      console.error("Error deleting process template:", error);
       res.status(500).json({ message: "Erro ao excluir modelo de processo" });
     }
   });
