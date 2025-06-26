@@ -486,14 +486,18 @@ export default function Processos() {
     }
   };
 
-  const handleSaveTemplate = (data: any) => {
+  const handleSaveTemplate = async (data: any) => {
     console.log("handleSaveTemplate called with:", { data, editingTemplate });
-    if (editingTemplate && editingTemplate.id) {
-      console.log("Calling updateTemplateMutation with template ID:", editingTemplate.id);
-      updateTemplateMutation.mutate({ data, templateId: editingTemplate.id });
-    } else {
-      console.log("Calling createTemplateMutation");
-      createTemplateMutation.mutate(data);
+    try {
+      if (editingTemplate && editingTemplate.id) {
+        console.log("Calling updateTemplateMutation with template ID:", editingTemplate.id);
+        await updateTemplateMutation.mutateAsync({ data, templateId: editingTemplate.id });
+      } else {
+        console.log("Calling createTemplateMutation");
+        await createTemplateMutation.mutateAsync(data);
+      }
+    } catch (error) {
+      console.error("Error in handleSaveTemplate:", error);
     }
   };
 

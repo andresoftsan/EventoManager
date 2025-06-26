@@ -26,12 +26,12 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 
   const adminMenuItems = [
     { path: "/empresas", icon: Building2, label: "Empresas" },
+    { path: "/configuracoes", icon: Settings, label: "Configurações" },
   ];
 
   const menuItems = [
     ...baseMenuItems,
     ...(isAdmin ? adminMenuItems : []),
-    { path: "/configuracoes", icon: Settings, label: "Configurações" },
   ];
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
