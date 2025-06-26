@@ -1027,6 +1027,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== PROCESS STEP INSTANCE ROUTES =====
   
+  // Get all step instances for a specific process
+  app.get("/api/process-instances/:id/steps", requireAuth, async (req, res) => {
+    try {
+      const processId = parseInt(req.params.id);
+      const stepInstances = await storage.getProcessStepInstancesByProcessId(processId);
+      
+      const stepsWithDetails = await Promise.all(
+        stepInstances.map(async (stepInstance) => {
+          const step = await storage.getProcessStep(stepInstance.stepId);
+          const assignedUser = await storage.getUser(stepInstance.assignedUserId);
+          
+          return {
+            ...stepInstance,
+            stepName: step?.name || "Etapa desconhecida",
+            stepOrder: step?.order || 0,
+            stepDescription: step?.description || "",
+            assignedUserName: assignedUser?.name || "Usuário desconhecido"
+          };
+        })
+      );
+      
+      // Sort by step order
+      stepsWithDetails.sort((a, b) => a.stepOrder - b.stepOrder);
+      
+      res.json(stepsWithDetails);
+    } catch (error) {
+      console.error("Error fetching process steps:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
   // Get my pending tasks
   app.get("/api/process-step-instances/my-tasks", requireAuth, async (req, res) => {
     try {
