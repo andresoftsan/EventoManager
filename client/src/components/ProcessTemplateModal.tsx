@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,12 +43,14 @@ interface ProcessTemplateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: ProcessTemplateFormData) => Promise<void>;
+  initialData?: any;
 }
 
 export default function ProcessTemplateModal({
   open,
   onOpenChange,
   onSave,
+  initialData,
 }: ProcessTemplateModalProps) {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
 
@@ -76,6 +78,32 @@ export default function ProcessTemplateModal({
     control: form.control,
     name: "steps",
   });
+
+  // Load initial data when editing
+  useEffect(() => {
+    if (initialData && open) {
+      const formattedData = {
+        name: initialData.name || "",
+        description: initialData.description || "",
+        steps: initialData.steps && initialData.steps.length > 0 
+          ? initialData.steps.map((step: any) => ({
+              name: step.name || "",
+              description: step.description || "",
+              responsibleUserId: step.responsibleUserId || 0,
+              formFields: step.formFields || [],
+            }))
+          : [{
+              name: "",
+              description: "",
+              responsibleUserId: 0,
+              formFields: [],
+            }]
+      };
+      
+      form.reset(formattedData);
+      setActiveStepIndex(0);
+    }
+  }, [initialData, open, form]);
 
   // Recria o useFieldArray sempre que activeStepIndex muda para garantir isolamento
   const { fields: formFields, append: addFormField, remove: removeFormField } = useFieldArray({
@@ -178,9 +206,14 @@ export default function ProcessTemplateModal({
     }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Modelo de Processo</DialogTitle>
+          <DialogTitle>
+            {initialData ? "Editar Modelo de Processo" : "Novo Modelo de Processo"}
+          </DialogTitle>
           <DialogDescription>
-            Crie um modelo de processo com etapas sequenciais e formulários personalizados.
+            {initialData 
+              ? "Edite o modelo de processo e suas etapas sequenciais."
+              : "Crie um modelo de processo com etapas sequenciais e formulários personalizados."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -474,7 +507,10 @@ export default function ProcessTemplateModal({
               Cancelar
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Criando..." : "Criar Modelo"}
+              {form.formState.isSubmitting 
+                ? (initialData ? "Atualizando..." : "Criando...") 
+                : (initialData ? "Atualizar Modelo" : "Criar Modelo")
+              }
             </Button>
           </DialogFooter>
         </form>
