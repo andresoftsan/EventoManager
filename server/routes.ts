@@ -1473,15 +1473,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId!;
       const user = await storage.getUser(userId);
       
+      let templates;
       if (user?.isAdmin) {
         // Admins can see all templates
-        const templates = await storage.getAllProcessTemplates();
-        res.json(templates);
+        templates = await storage.getAllProcessTemplates();
       } else {
         // Regular users only see templates they have access to
-        const templates = await storage.getAccessibleProcessTemplates(userId);
-        res.json(templates);
+        templates = await storage.getAccessibleProcessTemplates(userId);
       }
+      
+      // Get additional details for templates
+      const templatesWithDetails = await Promise.all(
+        templates.map(async (template) => {
+          const steps = await storage.getProcessStepsByTemplateId(template.id);
+          const creator = await storage.getUser(template.createdBy);
+          
+          return {
+            ...template,
+            stepsCount: steps.length,
+            createdByName: creator?.name || "Usuário desconhecido"
+          };
+        })
+      );
+
+      res.json(templatesWithDetails);
     } catch (error) {
       console.error("Error getting accessible templates:", error);
       res.status(500).json({ message: "Erro ao buscar templates acessíveis" });
