@@ -427,6 +427,7 @@ export default function Processos() {
   const { data: processReportData, isLoading: isLoadingReport } = useQuery({
     queryKey: ['/api/process-instances', selectedProcessForReport?.id, 'report'],
     enabled: !!selectedProcessForReport && isReportModalOpen,
+    queryFn: () => fetch(`/api/process-instances/${selectedProcessForReport?.id}/report`).then(res => res.json())
   });
 
   const handleEditTemplate = async (template: any) => {
@@ -958,7 +959,7 @@ export default function Processos() {
       <ProcessReportModal
         open={isReportModalOpen}
         onOpenChange={setIsReportModalOpen}
-        reportData={processReportData}
+        reportData={processReportData as any}
         isLoading={isLoadingReport}
       />
     </div>

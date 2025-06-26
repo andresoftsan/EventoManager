@@ -116,7 +116,7 @@ export default function ProcessReportModal({
     );
   }
 
-  if (!reportData) {
+  if (!reportData || !reportData.processInfo) {
     return null;
   }
 
@@ -139,36 +139,40 @@ export default function ProcessReportModal({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">
-                  {reportData.processInfo.processNumber}
+                  {reportData.processInfo.processNumber || 'Processo sem número'}
                 </CardTitle>
-                {getProcessStatusBadge(reportData.processInfo.status)}
+                {getProcessStatusBadge(reportData.processInfo.status || 'pending')}
               </div>
               <CardDescription className="text-lg font-medium text-foreground">
-                {reportData.processInfo.name}
+                {reportData.processInfo.name || 'Nome não informado'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm print:text-xs">
                 <div>
                   <span className="text-muted-foreground">Modelo:</span>
-                  <p className="font-medium">{reportData.processInfo.templateName}</p>
+                  <p className="font-medium">{reportData.processInfo.templateName || 'Não informado'}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Cliente:</span>
-                  <p className="font-medium">{reportData.processInfo.clientName}</p>
+                  <p className="font-medium">{reportData.processInfo.clientName || 'Não informado'}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Iniciado por:</span>
-                  <p className="font-medium">{reportData.processInfo.startedByName}</p>
+                  <p className="font-medium">{reportData.processInfo.startedByName || 'Não informado'}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Data de início:</span>
                   <p className="font-medium">
-                    {new Date(reportData.processInfo.startedAt).toLocaleDateString('pt-BR')} às{' '}
-                    {new Date(reportData.processInfo.startedAt).toLocaleTimeString('pt-BR', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+                    {reportData.processInfo.startedAt ? (
+                      <>
+                        {new Date(reportData.processInfo.startedAt).toLocaleDateString('pt-BR')} às{' '}
+                        {new Date(reportData.processInfo.startedAt).toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </>
+                    ) : 'Não informado'}
                   </p>
                 </div>
               </div>
@@ -179,7 +183,7 @@ export default function ProcessReportModal({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Etapas do Processo</h3>
             
-            {reportData.steps.map((step, index) => (
+            {(reportData.steps || []).map((step, index) => (
               <Card key={step.id} className="print:shadow-none print:border print:break-inside-avoid">
                 <CardHeader>
                   <div className="flex items-center justify-between">
