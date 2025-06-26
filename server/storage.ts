@@ -579,13 +579,25 @@ export class MemStorage implements IStorage {
   }
 
   async createProcessInstance(insertInstance: InsertProcessInstance): Promise<ProcessInstance> {
+    // Generate unique process number
+    const currentYear = new Date().getFullYear();
+    const processNumber = `PROC-${currentYear}-${String(this.processCounter).padStart(6, '0')}`;
+    
     const instance: ProcessInstance = {
       id: this.currentProcessInstanceId++,
-      ...insertInstance,
+      processNumber,
+      templateId: insertInstance.templateId,
+      clientId: insertInstance.clientId,
+      name: insertInstance.name,
+      status: insertInstance.status || "active",
+      startedBy: insertInstance.startedBy,
+      currentStepId: insertInstance.currentStepId,
       startedAt: new Date().toISOString(),
-      completedAt: null,
+      completedAt: insertInstance.completedAt,
     };
+    
     this.processInstances.set(instance.id, instance);
+    this.processCounter++;
     return instance;
   }
 

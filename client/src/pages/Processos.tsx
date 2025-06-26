@@ -483,7 +483,7 @@ export default function Processos() {
                       <div>
                         <CardTitle className="text-lg">{instance.name}</CardTitle>
                         <CardDescription>
-                          Número: {instance.processNumber} • Modelo: {instance.templateName}
+                          {instance.processNumber && instance.processNumber !== "undefined" ? `${instance.processNumber} • ` : ""}Modelo: {instance.templateName}
                         </CardDescription>
                       </div>
                       {getStatusBadge(instance.status)}
@@ -530,29 +530,53 @@ export default function Processos() {
           ) : filteredTasks.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhuma tarefa pendente</h3>
+                <Settings className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  {tasksSearchTerm ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa pendente"}
+                </h3>
                 <p className="text-muted-foreground text-center">
-                  Você não possui tarefas de processo pendentes no momento
+                  {tasksSearchTerm 
+                    ? "Tente ajustar os termos de busca" 
+                    : "Você não possui tarefas atribuídas no momento"
+                  }
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {myTasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <Card key={task.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-lg">{task.stepName}</CardTitle>
                         <CardDescription>
-                          Processo: {task.processName} ({task.templateName})
+                          {task.processNumber && task.processNumber !== "N/A" ? task.processNumber + " • " : ""}{task.processName}
                         </CardDescription>
                       </div>
                       {getStatusBadge(task.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
+                    <div className="space-y-2 text-sm mb-4">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cliente:</span>
+                        <span className="font-medium">{task.clientName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Modelo:</span>
+                        <span className="font-medium">{task.templateName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Etapa:</span>
+                        <Badge variant="outline">{task.stepOrder}</Badge>
+                      </div>
+                      {getBlockedReason(task) && (
+                        <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                          {getBlockedReason(task)}
+                        </div>
+                      )}
+                    </div>
                     <Button 
                       className="w-full"
                       onClick={() => handleExecuteTask(task)}
