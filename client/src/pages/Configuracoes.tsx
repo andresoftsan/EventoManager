@@ -201,14 +201,15 @@ export default function Configuracoes() {
         <p className="text-gray-600 text-sm lg:text-base">Gerencie usuários e permissões do sistema</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        {/* User Registration Form */}
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b border-gray-200">
-            <CardTitle className="text-lg font-semibold text-gray-800">
-              {editingUser ? "Editar Usuário" : "Cadastro de Usuário"}
-            </CardTitle>
-          </CardHeader>
+      <div className={`grid gap-4 lg:gap-6 ${authData?.user?.isAdmin ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+        {/* User Registration Form - Only for Admins */}
+        {authData?.user?.isAdmin && (
+          <Card className="border border-gray-200">
+            <CardHeader className="border-b border-gray-200">
+              <CardTitle className="text-lg font-semibold text-gray-800">
+                {editingUser ? "Editar Usuário" : "Cadastro de Usuário"}
+              </CardTitle>
+            </CardHeader>
           <CardContent className="p-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -372,6 +373,7 @@ export default function Configuracoes() {
               </Form>
           </CardContent>
         </Card>
+        )}
 
         {/* Users List */}
         <Card className="border border-gray-200">
