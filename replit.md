@@ -156,6 +156,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 26, 2025: Implemented admin-only process template deletion functionality with safety checks
 - June 26, 2025: Added validation to prevent deletion of templates with active process instances
 - June 26, 2025: Created proper cleanup mechanism that removes template steps before template deletion
+- June 26, 2025: Implemented admin-only process instance deletion functionality for active processes
+- June 26, 2025: Added delete button in active processes tab with automatic cleanup of step instances
+- June 26, 2025: Created comprehensive deletion system for both templates and active processes with admin restrictions
 
 ## User Preferences
 
