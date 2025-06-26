@@ -114,6 +114,11 @@ export default function ProcessTemplateModal({
   });
 
   const onSubmit = async (data: ProcessTemplateFormData) => {
+    console.log("Form onSubmit called with data:", data);
+    console.log("Form errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
+    console.log("Form is submitting:", form.formState.isSubmitting);
+    
     try {
       // Add order to steps
       const dataWithOrder = {
@@ -124,6 +129,7 @@ export default function ProcessTemplateModal({
         })),
       };
       
+      console.log("Calling onSave with:", dataWithOrder);
       await onSave(dataWithOrder);
       handleClose();
     } catch (error) {
@@ -528,7 +534,15 @@ export default function ProcessTemplateModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={form.formState.isSubmitting}
+              onClick={() => {
+                console.log("Submit button clicked");
+                console.log("Form errors before submit:", form.formState.errors);
+                console.log("Form values before submit:", form.getValues());
+              }}
+            >
               {form.formState.isSubmitting 
                 ? (initialData ? "Atualizando..." : "Criando...") 
                 : (initialData ? "Atualizar Modelo" : "Criar Modelo")
