@@ -153,6 +153,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 26, 2025: Added process steps visualization modal in active processes tab
 - June 26, 2025: Created detailed step tracking with status indicators (completed, in progress, waiting, pending)
 - June 26, 2025: Added step completion timeline with dates and responsible user information
+- June 26, 2025: Implemented admin-only process template deletion functionality with safety checks
+- June 26, 2025: Added validation to prevent deletion of templates with active process instances
+- June 26, 2025: Created proper cleanup mechanism that removes template steps before template deletion
 
 ## User Preferences
 

@@ -259,7 +259,18 @@ export default function Processos() {
   });
 
   const handleDeleteTemplate = (id: number, name: string) => {
-    if (confirm(`Tem certeza que deseja excluir o modelo "${name}"?`)) {
+    if (!authData?.user?.isAdmin) {
+      toast({ 
+        title: "Acesso negado", 
+        description: "Apenas administradores podem excluir modelos de processo.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    const confirmMessage = `Tem certeza que deseja excluir o modelo "${name}"?\n\nEsta ação não pode ser desfeita e todos os dados relacionados serão perdidos.`;
+    
+    if (confirm(confirmMessage)) {
       deleteTemplateMutation.mutate(id);
     }
   };
@@ -531,14 +542,16 @@ export default function Processos() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteTemplate(template.id, template.name)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {authData?.user?.isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTemplate(template.id, template.name)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                     {template.description && (
