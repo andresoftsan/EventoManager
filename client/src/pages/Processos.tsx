@@ -58,12 +58,12 @@ export default function Processos() {
   const [selectedProcessForReport, setSelectedProcessForReport] = useState<ProcessInstanceWithDetails | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-  // Fetch process templates
+  // Fetch accessible process templates for current user
   const {
     data: processTemplates = [],
     isLoading: templatesLoading,
   } = useQuery<ProcessTemplateWithSteps[]>({
-    queryKey: ["/api/process-templates"],
+    queryKey: ["/api/process-templates/accessible"],
   });
 
   // Fetch process instances
@@ -136,10 +136,30 @@ export default function Processos() {
         }
       }
       
+      // Add user access permissions
+      if (data.authorizedUsers && data.authorizedUsers.length > 0) {
+        for (const userId of data.authorizedUsers) {
+          const accessResponse = await fetch(`/api/process-templates/${template.id}/users`, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify({ userId }),
+            credentials: "include"
+          });
+          
+          if (!accessResponse.ok) {
+            console.error("Access permission creation failed for user:", userId);
+            // Continue with other users even if one fails
+          }
+        }
+      }
+      
       return template;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/process-templates/accessible"] });
       toast({ title: "Modelo de processo criado com sucesso!" });
       setIsTemplateModalOpen(false);
     },

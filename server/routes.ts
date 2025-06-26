@@ -1064,11 +1064,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/process-instances", requireAuth, async (req, res) => {
     try {
       const { templateId, clientId } = req.body;
+      const userId = req.session.userId!;
       
       // Get template and its steps
       const template = await storage.getProcessTemplate(templateId);
       if (!template) {
         return res.status(404).json({ message: "Modelo de processo não encontrado" });
+      }
+
+      // Check if user has access to start this process (unless admin)
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        const hasAccess = await storage.checkProcessTemplateUserAccess(templateId, userId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Você não tem permissão para iniciar este processo" });
+        }
       }
 
       const steps = await storage.getProcessStepsByTemplateId(templateId);
