@@ -402,8 +402,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create client (admin only)
-  app.post("/api/clients", requireAuth, requireAdmin, async (req, res) => {
+  // Create client
+  app.post("/api/clients", requireAuth, async (req, res) => {
     try {
       const clientData = insertClientSchema.parse(req.body);
       const client = await storage.createClient(clientData);
@@ -416,8 +416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update client (admin only)
-  app.put("/api/clients/:id", requireAuth, requireAdmin, async (req, res) => {
+  // Update client
+  app.put("/api/clients/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const clientData = insertClientSchema.partial().parse(req.body);
