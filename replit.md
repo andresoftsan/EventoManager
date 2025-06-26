@@ -163,6 +163,10 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 26, 2025: Added report generation endpoint that provides comprehensive process data including all steps and form fields
 - June 26, 2025: Created print-friendly report modal with detailed process information, step status, and filled form data
 - June 26, 2025: Added report button (document icon) in active processes tab for viewing and printing complete process reports
+- June 26, 2025: Implemented admin-only user creation restrictions with backend validation and frontend UI controls
+- June 26, 2025: Added requireAdmin middleware to user creation endpoint returning 403 error for non-admin users
+- June 26, 2025: Hid user registration form and edit buttons from non-admin users in Settings page
+- June 26, 2025: Created comprehensive user access control system preventing non-admin users from creating or editing other users
 
 ## User Preferences
 

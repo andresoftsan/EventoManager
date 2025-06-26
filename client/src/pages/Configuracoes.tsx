@@ -440,15 +440,17 @@ export default function Configuracoes() {
                       <Badge variant={user.isAdmin ? "default" : "secondary"}>
                         {user.isAdmin ? "Admin" : "Usuário"}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                        className="text-blue-600 hover:text-blue-700"
-                        disabled={isSubmitting}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {authData?.user?.isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          className="text-blue-600 hover:text-blue-700"
+                          disabled={isSubmitting}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       {isAdmin && user.username !== "admin" && (
                         <Button
                           variant="ghost"
