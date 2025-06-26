@@ -150,6 +150,9 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 25, 2025: Added process search functionality by process number
 - June 25, 2025: Added process number display in active processes and task tabs
 - June 25, 2025: Implemented search functionality by number, client, step and template name in process instances and tasks
+- June 26, 2025: Added process steps visualization modal in active processes tab
+- June 26, 2025: Created detailed step tracking with status indicators (completed, in progress, waiting, pending)
+- June 26, 2025: Added step completion timeline with dates and responsible user information
 
 ## User Preferences
 

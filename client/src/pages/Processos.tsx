@@ -50,6 +50,8 @@ export default function Processos() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [instancesSearchTerm, setInstancesSearchTerm] = useState("");
   const [tasksSearchTerm, setTasksSearchTerm] = useState("");
+  const [selectedProcessForSteps, setSelectedProcessForSteps] = useState<ProcessInstanceWithDetails | null>(null);
+  const [isStepsModalOpen, setIsStepsModalOpen] = useState(false);
 
   // Fetch process templates
   const {
@@ -272,6 +274,17 @@ export default function Processos() {
       task.templateName.toLowerCase().includes(searchLower)
     );
   });
+
+  // Fetch process steps for selected process
+  const { data: processSteps = [], isLoading: stepsLoading } = useQuery({
+    queryKey: ["/api/process-instances", selectedProcessForSteps?.id, "steps"],
+    enabled: !!selectedProcessForSteps?.id,
+  });
+
+  const handleViewSteps = (processInstance: ProcessInstanceWithDetails) => {
+    setSelectedProcessForSteps(processInstance);
+    setIsStepsModalOpen(true);
+  };
 
   // Execute process step mutation
   const executeStepMutation = useMutation({
@@ -569,7 +582,7 @@ export default function Processos() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Etapa:</span>
-                        <Badge variant="outline">{task.stepOrder}</Badge>
+                        <Badge variant="outline">Etapa {task.stepOrder}</Badge>
                       </div>
                       {getBlockedReason(task) && (
                         <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
@@ -618,6 +631,104 @@ export default function Processos() {
         onStart={handleConfirmStartProcess}
         isLoading={startProcessMutation.isPending}
       />
+
+      {/* Process Steps Modal */}
+      <Dialog open={isStepsModalOpen} onOpenChange={setIsStepsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Etapas do Processo</DialogTitle>
+            <DialogDescription>
+              {selectedProcessForSteps && (
+                <>
+                  <div className="font-medium text-foreground">
+                    {selectedProcessForSteps.processNumber} • {selectedProcessForSteps.name}
+                  </div>
+                  <div className="text-sm">
+                    Cliente: {selectedProcessForSteps.clientName} • Modelo: {selectedProcessForSteps.templateName}
+                  </div>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {stepsLoading ? (
+            <div className="text-center py-8">Carregando etapas...</div>
+          ) : (
+            <div className="space-y-3">
+              {processSteps.map((step: any, index: number) => (
+                <Card key={step.id} className="relative">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {step.status === "completed" ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : step.status === "in_progress" ? (
+                          <Clock className="h-5 w-5 text-blue-600" />
+                        ) : step.status === "waiting" ? (
+                          <AlertCircle className="h-5 w-5 text-orange-600" />
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">
+                            {step.stepOrder}. {step.stepName}
+                          </h4>
+                          <Badge 
+                            variant={
+                              step.status === "completed" ? "default" :
+                              step.status === "in_progress" ? "secondary" :
+                              step.status === "waiting" ? "destructive" : "outline"
+                            }
+                          >
+                            {step.status === "completed" ? "Concluída" :
+                             step.status === "in_progress" ? "Em Progresso" :
+                             step.status === "waiting" ? "Aguardando" : "Pendente"}
+                          </Badge>
+                        </div>
+                        
+                        {step.stepDescription && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {step.stepDescription}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span>Responsável: {step.assignedUserName}</span>
+                          {step.completedAt && (
+                            <span>
+                              Concluída em: {new Date(step.completedAt).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                          {step.startedAt && !step.completedAt && (
+                            <span>
+                              Iniciada em: {new Date(step.startedAt).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {step.notes && (
+                          <div className="mt-2 p-2 bg-muted rounded text-sm">
+                            <strong>Observações:</strong> {step.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {processSteps.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma etapa encontrada para este processo
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
