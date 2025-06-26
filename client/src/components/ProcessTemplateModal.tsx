@@ -175,6 +175,7 @@ export default function ProcessTemplateModal({
         name: "",
         description: "",
         responsibleUserId: 0,
+        deadlineDays: 7,
         formFields: [],
       });
     } else {
@@ -182,6 +183,7 @@ export default function ProcessTemplateModal({
       if (currentStep.name === undefined) form.setValue(`steps.${stepIndex}.name`, "");
       if (currentStep.description === undefined) form.setValue(`steps.${stepIndex}.description`, "");
       if (currentStep.responsibleUserId === undefined) form.setValue(`steps.${stepIndex}.responsibleUserId`, 0);
+      if (currentStep.deadlineDays === undefined) form.setValue(`steps.${stepIndex}.deadlineDays`, 7);
       if (!currentStep.formFields) form.setValue(`steps.${stepIndex}.formFields`, []);
     }
   };
@@ -295,6 +297,7 @@ export default function ProcessTemplateModal({
                     name: "",
                     description: "",
                     responsibleUserId: 0,
+                    deadlineDays: 7,
                     formFields: [],
                   });
                   // Automatically switch to the new step
@@ -427,6 +430,28 @@ export default function ProcessTemplateModal({
                           {form.formState.errors.steps[activeStepIndex]?.responsibleUserId?.message}
                         </p>
                       )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`step-deadline-${activeStepIndex}`}>Prazo (em dias)</Label>
+                      <Input
+                        key={`step-deadline-${activeStepIndex}`}
+                        id={`step-deadline-${activeStepIndex}`}
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={form.watch(`steps.${activeStepIndex}.deadlineDays`) || 7}
+                        onChange={(e) => form.setValue(`steps.${activeStepIndex}.deadlineDays`, parseInt(e.target.value) || 7)}
+                        placeholder="7"
+                      />
+                      {form.formState.errors.steps?.[activeStepIndex]?.deadlineDays && (
+                        <p className="text-sm text-red-600">
+                          {form.formState.errors.steps[activeStepIndex]?.deadlineDays?.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Prazo em dias para executar esta etapa (padrão: 7 dias)
+                      </p>
                     </div>
 
                     <Separator />
