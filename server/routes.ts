@@ -866,6 +866,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create process template
   app.post("/api/process-templates", requireAuth, async (req, res) => {
     try {
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Apenas administradores podem criar modelos de processo" });
+      }
+
       const templateData = { 
         name: req.body.name,
         description: req.body.description,
@@ -881,6 +887,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create process step
   app.post("/api/process-steps", requireAuth, async (req, res) => {
     try {
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId!);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Apenas administradores podem criar etapas de processo" });
+      }
+
       const stepData = {
         templateId: req.body.templateId,
         name: req.body.name,
