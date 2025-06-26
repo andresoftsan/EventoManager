@@ -103,22 +103,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let users;
       
       if (currentUser?.isAdmin) {
-        // Admin users see only users who share at least one company
-        const allUsers = await storage.getAllUsers();
-        
-        users = allUsers.filter(user => {
-          // Always include the current user
-          if (user.id === currentUser.id) return true;
+        // Master admin (username "admin") sees all users
+        if (currentUser.username === "admin") {
+          users = await storage.getAllUsers();
+        } else {
+          // Other admin users see only users who share at least one company
+          const allUsers = await storage.getAllUsers();
           
-          // Check if admin and user share at least one company
-          const adminCompanies = currentUser.companyIds || [];
-          const userCompanies = user.companyIds || [];
-          const hasSharedCompany = adminCompanies.some(companyId => 
-            userCompanies.includes(companyId)
-          );
-          
-          return hasSharedCompany;
-        });
+          users = allUsers.filter(user => {
+            // Always include the current user
+            if (user.id === currentUser.id) return true;
+            
+            // Check if admin and user share at least one company
+            const adminCompanies = currentUser.companyIds || [];
+            const userCompanies = user.companyIds || [];
+            const hasSharedCompany = adminCompanies.some(companyId => 
+              userCompanies.includes(companyId)
+            );
+            
+            return hasSharedCompany;
+          });
+        }
       } else {
         // Non-admin users see all users (for user selection in forms)
         users = await storage.getAllUsers();
