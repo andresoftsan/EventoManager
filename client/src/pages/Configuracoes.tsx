@@ -87,9 +87,23 @@ export default function Configuracoes() {
       });
     },
     onError: (error: any) => {
+      let errorMessage = "Erro ao cadastrar usuário";
+      
+      if (error.message) {
+        if (error.message.includes("409")) {
+          errorMessage = "Este nome de usuário já existe. Escolha outro nome de usuário.";
+        } else if (error.message.includes("400")) {
+          errorMessage = "Dados inválidos. Verifique se todos os campos estão preenchidos corretamente.";
+        } else if (error.message.includes("403")) {
+          errorMessage = "Você não tem permissão para cadastrar usuários.";
+        } else {
+          errorMessage = error.message.replace(/^\d+:\s*/, '').replace(/^{.*?"message":\s*"([^"]*)".*}$/, '$1');
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: error.message || "Erro ao cadastrar usuário",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -111,9 +125,25 @@ export default function Configuracoes() {
       });
     },
     onError: (error: any) => {
+      let errorMessage = "Erro ao atualizar usuário";
+      
+      if (error.message) {
+        if (error.message.includes("409")) {
+          errorMessage = "Este nome de usuário já existe. Escolha outro nome de usuário.";
+        } else if (error.message.includes("400")) {
+          errorMessage = "Dados inválidos. Verifique se todos os campos estão preenchidos corretamente.";
+        } else if (error.message.includes("403")) {
+          errorMessage = "Você não tem permissão para editar usuários.";
+        } else if (error.message.includes("404")) {
+          errorMessage = "Usuário não encontrado.";
+        } else {
+          errorMessage = error.message.replace(/^\d+:\s*/, '').replace(/^{.*?"message":\s*"([^"]*)".*}$/, '$1');
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar usuário",
+        description: errorMessage,
         variant: "destructive",
       });
     },
