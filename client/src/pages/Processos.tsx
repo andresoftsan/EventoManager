@@ -859,6 +859,23 @@ export default function Processos() {
                         <span className="text-muted-foreground">Etapa:</span>
                         <Badge variant="outline">Etapa {task.stepOrder}</Badge>
                       </div>
+                      {task.dueDate && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Prazo:</span>
+                          <span className={`font-medium ${
+                            new Date(task.dueDate) < new Date() 
+                              ? 'text-red-600' 
+                              : new Date(task.dueDate).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000
+                              ? 'text-orange-600'
+                              : 'text-green-600'
+                          }`}>
+                            {new Date(task.dueDate).toLocaleDateString('pt-BR')}
+                            {new Date(task.dueDate) < new Date() && ' (Atrasado)'}
+                            {new Date(task.dueDate).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000 && 
+                             new Date(task.dueDate) >= new Date() && ' (Vence hoje)'}
+                          </span>
+                        </div>
+                      )}
                       {getBlockedReason(task) && (
                         <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
                           {getBlockedReason(task)}
