@@ -1146,6 +1146,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get complete process report for printing/viewing
+  app.get("/api/process-instances/:id/report", requireAuth, async (req, res) => {
+    try {
+      const processId = parseInt(req.params.id);
+      
+      // Get process instance
+      const instance = await storage.getProcessInstance(processId);
+      if (!instance) {
+        return res.status(404).json({ message: "Processo não encontrado" });
+      }
+
+      // Get related data
+      const template = await storage.getProcessTemplate(instance.templateId);
+      const client = await storage.getClient(instance.clientId);
+      const starter = await storage.getUser(instance.startedBy);
+      
+      // Get all step instances with details
+      const stepInstances = await storage.getProcessStepInstancesByProcessId(processId);
+      
+      const stepsWithDetails = await Promise.all(
+        stepInstances.map(async (stepInstance) => {
+          const step = await storage.getProcessStep(stepInstance.stepId);
+          const assignedUser = await storage.getUser(stepInstance.assignedUserId);
+          
+          return {
+            ...stepInstance,
+            stepName: step?.name || "Etapa desconhecida",
+            stepDescription: step?.description || "",
+            stepOrder: step?.order || 0,
+            assignedUserName: assignedUser?.name || "Usuário desconhecido",
+            formFields: step?.formFields || []
+          };
+        })
+      );
+      
+      // Sort by step order
+      stepsWithDetails.sort((a, b) => a.stepOrder - b.stepOrder);
+      
+      const processReport = {
+        processInfo: {
+          id: instance.id,
+          processNumber: instance.processNumber,
+          name: instance.name,
+          status: instance.status,
+          startedAt: instance.startedAt,
+          templateName: template?.name || "Modelo desconhecido",
+          clientName: client?.razaoSocial || "Cliente desconhecido",
+          startedByName: starter?.name || "Usuário desconhecido"
+        },
+        steps: stepsWithDetails
+      };
+      
+      res.json(processReport);
+    } catch (error) {
+      console.error("Error generating process report:", error);
+      res.status(500).json({ message: "Erro ao gerar relatório do processo" });
+    }
+  });
+
   // ===== PROCESS STEP INSTANCE ROUTES =====
   
   // Get all step instances for a specific process

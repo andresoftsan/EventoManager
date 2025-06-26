@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import ProcessTemplateModal from "@/components/ProcessTemplateModal";
 import ProcessStepExecutionModal from "@/components/ProcessStepExecutionModal";
 import StartProcessModal from "@/components/StartProcessModal";
+import ProcessReportModal from "@/components/ProcessReportModal";
 import type { ProcessTemplate, ProcessInstance, ProcessStepInstance } from "@shared/schema";
 
 interface ProcessTemplateWithSteps extends ProcessTemplate {
@@ -54,6 +55,8 @@ export default function Processos() {
   const [tasksSearchTerm, setTasksSearchTerm] = useState("");
   const [selectedProcessForSteps, setSelectedProcessForSteps] = useState<ProcessInstanceWithDetails | null>(null);
   const [isStepsModalOpen, setIsStepsModalOpen] = useState(false);
+  const [selectedProcessForReport, setSelectedProcessForReport] = useState<ProcessInstanceWithDetails | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Fetch process templates
   const {
@@ -415,6 +418,17 @@ export default function Processos() {
     setIsStepsModalOpen(true);
   };
 
+  const handleViewReport = (processInstance: ProcessInstanceWithDetails) => {
+    setSelectedProcessForReport(processInstance);
+    setIsReportModalOpen(true);
+  };
+
+  // Query para buscar relatório completo do processo
+  const { data: processReportData, isLoading: isLoadingReport } = useQuery({
+    queryKey: ['/api/process-instances', selectedProcessForReport?.id, 'report'],
+    enabled: !!selectedProcessForReport && isReportModalOpen,
+  });
+
   const handleEditTemplate = async (template: any) => {
     try {
       // Fetch template with steps for editing
@@ -706,6 +720,14 @@ export default function Processos() {
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Etapas do Processo
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewReport(instance)}
+                        className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                       {authData?.user?.isAdmin && (
                         <Button
                           variant="outline"
@@ -931,6 +953,14 @@ export default function Processos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Relatório do Processo */}
+      <ProcessReportModal
+        open={isReportModalOpen}
+        onOpenChange={setIsReportModalOpen}
+        reportData={processReportData}
+        isLoading={isLoadingReport}
+      />
     </div>
   );
 }
