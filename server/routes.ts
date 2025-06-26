@@ -896,6 +896,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get process template with steps for editing
+  app.get("/api/process-templates/:id/edit", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getProcessTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Modelo de processo não encontrado" });
+      }
+
+      const steps = await storage.getProcessStepsByTemplateId(id);
+      
+      res.json({
+        ...template,
+        steps: steps.sort((a, b) => a.order - b.order)
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar modelo de processo" });
+    }
+  });
+
+  // Update process template
+  app.put("/api/process-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, description, steps } = req.body;
+      
+      // Update template
+      const updatedTemplate = await storage.updateProcessTemplate(id, {
+        name,
+        description
+      });
+      
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "Modelo de processo não encontrado" });
+      }
+
+      // Delete existing steps
+      const existingSteps = await storage.getProcessStepsByTemplateId(id);
+      for (const step of existingSteps) {
+        await storage.deleteProcessStep(step.id);
+      }
+
+      // Create new steps
+      for (const step of steps) {
+        await storage.createProcessStep({
+          templateId: id,
+          name: step.name,
+          description: step.description,
+          order: step.order,
+          responsibleUserId: step.responsibleUserId,
+          formFields: step.formFields || []
+        });
+      }
+
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error("Error updating process template:", error);
+      res.status(500).json({ message: "Erro ao atualizar modelo de processo" });
+    }
+  });
+
   // Delete process template
   app.delete("/api/process-templates/:id", requireAuth, async (req, res) => {
     try {

@@ -46,6 +46,7 @@ export default function Processos() {
   const [isStartProcessModalOpen, setIsStartProcessModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [searchNumber, setSearchNumber] = useState("");
   const [searchResult, setSearchResult] = useState<ProcessInstanceWithDetails | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -167,6 +168,49 @@ export default function Processos() {
       console.error("Error creating template:", error);
       toast({ 
         title: "Erro ao criar modelo de processo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update process template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log("Updating template with data:", data, "ID:", editingTemplate?.id);
+      
+      const response = await fetch(`/api/process-templates/${editingTemplate.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          steps: data.steps,
+        }),
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Template update failed:", errorData);
+        throw new Error(`Erro ao atualizar modelo de processo: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/process-templates"] });
+      toast({ title: "Modelo de processo atualizado com sucesso!" });
+      setIsTemplateModalOpen(false);
+      setEditingTemplate(null);
+    },
+    onError: (error) => {
+      console.error("Error updating template:", error);
+      toast({ 
+        title: "Erro ao atualizar modelo", 
         description: error.message,
         variant: "destructive" 
       });
@@ -298,6 +342,38 @@ export default function Processos() {
   const handleViewSteps = (processInstance: ProcessInstanceWithDetails) => {
     setSelectedProcessForSteps(processInstance);
     setIsStepsModalOpen(true);
+  };
+
+  const handleEditTemplate = async (template: any) => {
+    try {
+      // Fetch template with steps for editing
+      const response = await fetch(`/api/process-templates/${template.id}/edit`, {
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Erro ao carregar dados do modelo");
+      }
+      
+      const templateData = await response.json();
+      setEditingTemplate(templateData);
+      setIsTemplateModalOpen(true);
+    } catch (error) {
+      console.error("Error loading template for editing:", error);
+      toast({ 
+        title: "Erro ao carregar modelo", 
+        description: "Não foi possível carregar os dados do modelo para edição",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleSaveTemplate = (data: any) => {
+    if (editingTemplate) {
+      updateTemplateMutation.mutate(data);
+    } else {
+      createTemplateMutation.mutate(data);
+    }
   };
 
   // Execute process step mutation
@@ -436,7 +512,11 @@ export default function Processos() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{template.name}</CardTitle>
                       <div className="flex space-x-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditTemplate(template)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -637,10 +717,14 @@ export default function Processos() {
 
       <ProcessTemplateModal
         open={isTemplateModalOpen}
-        onOpenChange={setIsTemplateModalOpen}
-        onSave={(data) => {
-          createTemplateMutation.mutate(data);
+        onOpenChange={(open) => {
+          setIsTemplateModalOpen(open);
+          if (!open) {
+            setEditingTemplate(null);
+          }
         }}
+        initialData={editingTemplate}
+        onSave={handleSaveTemplate}
       />
 
       <ProcessStepExecutionModal
