@@ -320,6 +320,13 @@ export default function Processos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/process-step-instances/my-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/process-instances"] });
+      // Invalidate all process steps queries to update any open modals
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key && key.includes('/api/process-instances/') && key.includes('/steps');
+        }
+      });
       toast({ title: "Etapa executada com sucesso!" });
       setIsExecutionModalOpen(false);
       setSelectedTask(null);
