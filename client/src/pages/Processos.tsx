@@ -131,6 +131,7 @@ export default function Processos() {
             description: step.description,
             order: step.order,
             responsibleUserId: step.responsibleUserId,
+            deadlineDays: step.deadlineDays || 7,
             formFields: step.formFields,
           }),
           credentials: "include"
