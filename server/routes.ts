@@ -904,6 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: req.body.description,
         order: req.body.order,
         responsibleUserId: req.body.responsibleUserId,
+        deadlineDays: req.body.deadlineDays || 7,
         formFields: req.body.formFields || []
       };
       const step = await storage.createProcessStep(stepData);
@@ -1127,7 +1128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const step of steps) {
         // Calculate due date based on cumulative deadline days from process start
         const startDate = new Date(instance.startedAt);
-        cumulativeDays += (step.deadlineDays || 7);
+        const stepDeadlineDays = step.deadlineDays || 7;
+        cumulativeDays += stepDeadlineDays;
+        console.log(`Step ${step.name}: deadlineDays = ${step.deadlineDays}, using = ${stepDeadlineDays}, cumulative = ${cumulativeDays}`);
         const dueDate = new Date(startDate.getTime() + cumulativeDays * 24 * 60 * 60 * 1000);
 
         const stepInstanceData = {
