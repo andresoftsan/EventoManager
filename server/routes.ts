@@ -898,6 +898,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Apenas administradores podem criar etapas de processo" });
       }
 
+      console.log("Creating step with body:", req.body);
+      console.log("deadlineDays received:", req.body.deadlineDays);
+
       const stepData = {
         templateId: req.body.templateId,
         name: req.body.name,
