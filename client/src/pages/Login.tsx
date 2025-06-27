@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { Calendar } from "lucide-react";
 import { useLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { loginSchema, type LoginData } from "@shared/schema";
@@ -19,6 +21,7 @@ import { loginSchema, type LoginData } from "@shared/schema";
 export default function Login() {
   const login = useLogin();
   const { toast } = useToast();
+  const [rememberCredentials, setRememberCredentials] = useState(false);
 
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -28,8 +31,36 @@ export default function Login() {
     },
   });
 
+  // Load saved credentials on component mount
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem("workday-credentials");
+    if (savedCredentials) {
+      try {
+        const { username, password } = JSON.parse(savedCredentials);
+        form.setValue("username", username);
+        form.setValue("password", password);
+        setRememberCredentials(true);
+      } catch (error) {
+        // Clear invalid saved data
+        localStorage.removeItem("workday-credentials");
+      }
+    }
+  }, [form]);
+
   const onSubmit = (data: LoginData) => {
     login.mutate(data, {
+      onSuccess: () => {
+        // Save credentials if remember is checked
+        if (rememberCredentials) {
+          localStorage.setItem("workday-credentials", JSON.stringify({
+            username: data.username,
+            password: data.password
+          }));
+        } else {
+          // Remove saved credentials if remember is unchecked
+          localStorage.removeItem("workday-credentials");
+        }
+      },
       onError: (error: any) => {
         toast({
           title: "Erro de autenticação",
@@ -90,6 +121,20 @@ export default function Login() {
                   </FormItem>
                 )}
               />
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="remember"
+                  checked={rememberCredentials}
+                  onCheckedChange={(checked) => setRememberCredentials(checked as boolean)}
+                />
+                <label 
+                  htmlFor="remember" 
+                  className="text-sm text-gray-600 cursor-pointer"
+                >
+                  Lembrar credenciais
+                </label>
+              </div>
               
               <Button 
                 type="submit" 
