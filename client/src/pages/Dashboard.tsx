@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, CalendarCheck, Users, Clock, CheckSquare, AlertTriangle, Target } from "lucide-react";
+import { Calendar, CalendarCheck, Users, Clock, CheckSquare, AlertTriangle, Target, GitCommit, Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -12,6 +12,9 @@ interface Stats {
   openTasks: number;
   overdueTasks: number;
   todayTasks: number;
+  pendingProcessSteps: number;
+  overdueProcessSteps: number;
+  todayProcessSteps: number;
 }
 
 interface EventWithUser {
@@ -84,6 +87,27 @@ export default function Dashboard() {
       bgColor: "bg-yellow-50",
       iconColor: "text-yellow-600",
     },
+    {
+      title: "Etapas Pendentes",
+      value: stats?.pendingProcessSteps || 0,
+      icon: GitCommit,
+      bgColor: "bg-cyan-50",
+      iconColor: "text-cyan-600",
+    },
+    {
+      title: "Etapas Atrasadas",
+      value: stats?.overdueProcessSteps || 0,
+      icon: Settings,
+      bgColor: "bg-rose-50",
+      iconColor: "text-rose-600",
+    },
+    {
+      title: "Etapas Hoje",
+      value: stats?.todayProcessSteps || 0,
+      icon: Clock,
+      bgColor: "bg-amber-50",
+      iconColor: "text-amber-600",
+    },
   ];
 
   return (
@@ -94,7 +118,7 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           

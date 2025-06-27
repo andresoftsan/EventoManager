@@ -373,6 +373,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return taskEndDate === today;
       }).length;
 
+      // Process step instances statistics
+      let pendingProcessSteps = 0;
+      let overdueProcessSteps = 0;
+      let todayProcessSteps = 0;
+      
+      if (user?.isAdmin) {
+        // Admin sees all pending steps
+        const allSteps = await storage.getProcessStepInstancesByUserId(req.session.userId!);
+        const allPendingSteps: any[] = [];
+        
+        // Get all users and their pending steps
+        const allUsers = await storage.getAllUsers();
+        for (const u of allUsers) {
+          const userSteps = await storage.getProcessStepInstancesByUserId(u.id);
+          allPendingSteps.push(...userSteps.filter(step => 
+            step.status === "pending" || step.status === "in_progress" || step.status === "waiting"
+          ));
+        }
+        
+        pendingProcessSteps = allPendingSteps.length;
+        
+        // Count overdue process steps
+        overdueProcessSteps = allPendingSteps.filter(step => 
+          step.dueDate && new Date(step.dueDate) < new Date()
+        ).length;
+        
+        // Count process steps due today
+        todayProcessSteps = allPendingSteps.filter(step => {
+          if (!step.dueDate) return false;
+          const stepDueDate = new Date(step.dueDate).toISOString().split('T')[0];
+          return stepDueDate === today;
+        }).length;
+      } else {
+        // Regular user sees only their own steps
+        const userSteps = await storage.getProcessStepInstancesByUserId(req.session.userId!);
+        const userPendingSteps = userSteps.filter(step => 
+          step.status === "pending" || step.status === "in_progress" || step.status === "waiting"
+        );
+        
+        pendingProcessSteps = userPendingSteps.length;
+        
+        // Count overdue process steps
+        overdueProcessSteps = userPendingSteps.filter(step => 
+          step.dueDate && new Date(step.dueDate) < new Date()
+        ).length;
+        
+        // Count process steps due today
+        todayProcessSteps = userPendingSteps.filter(step => {
+          if (!step.dueDate) return false;
+          const stepDueDate = new Date(step.dueDate).toISOString().split('T')[0];
+          return stepDueDate === today;
+        }).length;
+      }
+
       const stats = {
         totalEvents: events.length,
         todayEvents: events.filter(e => e.date === today).length,
@@ -382,6 +436,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         openTasks,
         overdueTasks,
         todayTasks,
+        pendingProcessSteps,
+        overdueProcessSteps,
+        todayProcessSteps,
       };
 
       res.json(stats);
