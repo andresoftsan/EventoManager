@@ -1122,14 +1122,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const instance = await storage.createProcessInstance(instanceData);
 
-      // Create step instances for all steps - only first step is pending
+      // Create step instances for all steps with calculated due dates
+      let cumulativeDays = 0;
       for (const step of steps) {
-        // Calculate due date for the first step (only active step gets due date initially)
-        let dueDate = null;
-        if (step.order === 1) {
-          const startDate = new Date(instance.startedAt);
-          dueDate = new Date(startDate.getTime() + (step.deadlineDays || 7) * 24 * 60 * 60 * 1000);
-        }
+        // Calculate due date based on cumulative deadline days from process start
+        const startDate = new Date(instance.startedAt);
+        cumulativeDays += (step.deadlineDays || 7);
+        const dueDate = new Date(startDate.getTime() + cumulativeDays * 24 * 60 * 60 * 1000);
 
         const stepInstanceData = {
           processInstanceId: instance.id,
@@ -1396,15 +1395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             currentStepId: nextStep.id,
           });
           
-          // Mark next step as pending (available for execution) and calculate due date
+          // Mark next step as pending (available for execution)
           if (nextStepInstance) {
-            // Calculate due date for next step based on current completion date
-            const completionDate = new Date();
-            const nextStepDueDate = new Date(completionDate.getTime() + (nextStep.deadlineDays || 7) * 24 * 60 * 60 * 1000);
-            
             await storage.updateProcessStepInstance(nextStepInstance.id, {
               status: "pending",
-              dueDate: nextStepDueDate,
             });
           }
         } else {
