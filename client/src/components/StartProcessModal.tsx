@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
+import { Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Client } from "@shared/schema";
 
 const startProcessSchema = z.object({
@@ -37,6 +39,9 @@ export default function StartProcessModal({
   onStart,
   isLoading = false,
 }: StartProcessModalProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+
   const form = useForm<StartProcessData>({
     resolver: zodResolver(startProcessSchema),
     defaultValues: {
@@ -49,18 +54,41 @@ export default function StartProcessModal({
     queryKey: ["/api/clients"],
   });
 
-  const onSubmit = (data: StartProcessData) => {
-    if (!template) return;
+  // Filter clients based on search term
+  const filteredClients = useMemo(() => {
+    if (!searchTerm) return clients;
     
-    const clientId = parseInt(data.clientId);
-    onStart(template.id, clientId);
+    const searchLower = searchTerm.toLowerCase();
+    return clients.filter(client => 
+      client.razaoSocial?.toLowerCase().includes(searchLower) ||
+      client.nomeFantasia?.toLowerCase().includes(searchLower) ||
+      client.cnpj?.includes(searchTerm)
+    );
+  }, [clients, searchTerm]);
+
+  const onSubmit = (data: StartProcessData) => {
+    if (!template || !selectedClientId) return;
+    
+    onStart(template.id, selectedClientId);
     form.reset();
+    setSelectedClientId(null);
+    setSearchTerm("");
   };
 
   const handleClose = () => {
     form.reset();
+    setSelectedClientId(null);
+    setSearchTerm("");
     onOpenChange(false);
   };
+
+  const handleClientSelect = (client: Client) => {
+    setSelectedClientId(client.id);
+    form.setValue("clientId", client.id.toString());
+    setSearchTerm(client.razaoSocial);
+  };
+
+  const selectedClient = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
 
   if (!template) return null;
 
@@ -98,27 +126,66 @@ export default function StartProcessModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cliente *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o cliente para este processo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id.toString()}>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar cliente por nome ou CNPJ..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      
+                      {selectedClient && (
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <div className="font-medium">{client.name}</div>
-                              {client.cnpj && (
+                              <div className="font-medium">{selectedClient.razaoSocial}</div>
+                              {selectedClient.cnpj && (
                                 <div className="text-xs text-muted-foreground">
-                                  CNPJ: {client.cnpj}
+                                  CNPJ: {selectedClient.cnpj}
                                 </div>
                               )}
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                            <Badge variant="secondary">
+                              <Check className="h-3 w-3 mr-1" />
+                              Selecionado
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {searchTerm && !selectedClient && (
+                        <ScrollArea className="h-32 border rounded-lg">
+                          <div className="p-2 space-y-1">
+                            {filteredClients.length === 0 ? (
+                              <div className="text-center text-muted-foreground py-4">
+                                Nenhum cliente encontrado
+                              </div>
+                            ) : (
+                              filteredClients.map((client) => (
+                                <div
+                                  key={client.id}
+                                  className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+                                  onClick={() => handleClientSelect(client)}
+                                >
+                                  <div className="font-medium">{client.razaoSocial}</div>
+                                  {client.nomeFantasia && client.nomeFantasia !== client.razaoSocial && (
+                                    <div className="text-sm text-muted-foreground">{client.nomeFantasia}</div>
+                                  )}
+                                  {client.cnpj && (
+                                    <div className="text-xs text-muted-foreground">
+                                      CNPJ: {client.cnpj}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -128,7 +195,7 @@ export default function StartProcessModal({
                 <Button type="button" variant="outline" onClick={handleClose}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading}>
+                <Button type="submit" disabled={isLoading || !selectedClientId}>
                   {isLoading ? "Iniciando..." : "Iniciar Processo"}
                 </Button>
               </DialogFooter>

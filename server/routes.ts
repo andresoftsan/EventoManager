@@ -898,8 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Apenas administradores podem criar etapas de processo" });
       }
 
-      console.log("Creating step with body:", req.body);
-      console.log("deadlineDays received:", req.body.deadlineDays);
+
 
       const stepData = {
         templateId: req.body.templateId,
@@ -1133,7 +1132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const startDate = new Date(instance.startedAt);
         const stepDeadlineDays = step.deadlineDays || 7;
         cumulativeDays += stepDeadlineDays;
-        console.log(`Step ${step.name}: deadlineDays = ${step.deadlineDays}, using = ${stepDeadlineDays}, cumulative = ${cumulativeDays}`);
         const dueDate = new Date(startDate.getTime() + cumulativeDays * 24 * 60 * 60 * 1000);
 
         const stepInstanceData = {
