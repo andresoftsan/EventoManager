@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List, Search, ChevronDown, Check } from "lucide-react";
+import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List, Search, ChevronDown, Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -268,16 +268,10 @@ export default function Tarefas() {
   // Mark task as completed
   const markAsCompletedMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      // Find the "Concluído" stage
-      const completedStage = stages.find(stage => stage.name.toLowerCase() === "concluído");
-      if (!completedStage) {
-        throw new Error("Etapa 'Concluído' não encontrada");
-      }
-
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId: completedStage.id }),
+        body: JSON.stringify({ completed: true }),
       });
 
       if (!response.ok) {
@@ -308,6 +302,43 @@ export default function Tarefas() {
     }
   };
 
+  // Reopen task
+  const reopenTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: false }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao reabrir tarefa');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      toast({
+        title: "Tarefa reaberta",
+        description: "A tarefa foi reaberta com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleReopenTask = (taskId: number) => {
+    if (confirm("Tem certeza que deseja reabrir esta tarefa?")) {
+      reopenTaskMutation.mutate(taskId);
+    }
+  };
+
   // Filter tasks by search term, date range, and status
   const filteredTasks = tasks.filter((task: TaskWithDetails) => {
     // Filter by title
@@ -320,13 +351,12 @@ export default function Tarefas() {
     const matchesEndDate = !endDateFilter || task.endDate <= endDateFilter;
     
     // Filter by status
-    const isCompleted = task.stageName.toLowerCase() === "concluído";
     let matchesStatus = true;
     
     if (statusFilter === "abertas") {
-      matchesStatus = !isCompleted;
+      matchesStatus = !task.completed;
     } else if (statusFilter === "concluidas") {
-      matchesStatus = isCompleted;
+      matchesStatus = task.completed;
     }
     // If statusFilter === "todas", matchesStatus remains true
     
@@ -480,19 +510,26 @@ export default function Tarefas() {
           ))
         ) : Array.isArray(filteredTasks) && filteredTasks.length > 0 ? (
           filteredTasks.map((task: TaskWithDetails) => (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
+            <Card key={task.id} className={`hover:shadow-md transition-shadow ${task.completed ? 'bg-green-50 border-green-200' : ''}`}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 text-sm lg:text-base truncate">
+                    <h3 className={`font-medium text-sm lg:text-base truncate ${task.completed ? 'text-green-900 line-through' : 'text-gray-900'}`}>
                       {task.title}
                     </h3>
-                    <Badge className={`mt-2 text-xs ${getStatusColor(task.stageName)}`}>
-                      {task.stageName}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={`text-xs ${getStatusColor(task.stageName)}`}>
+                        {task.stageName}
+                      </Badge>
+                      {task.completed && (
+                        <Badge className="bg-green-100 text-green-800 text-xs">
+                          Concluída
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex space-x-1 ml-2">
-                    {task.stageName.toLowerCase() !== "concluído" && (
+                    {!task.completed ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -501,6 +538,16 @@ export default function Tarefas() {
                         title="Marcar como concluída"
                       >
                         <CheckSquare className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReopenTask(task.id)}
+                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                        title="Reabrir tarefa"
+                      >
+                        <RotateCcw className="h-3 w-3" />
                       </Button>
                     )}
                     <Button

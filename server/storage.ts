@@ -443,6 +443,7 @@ export class MemStorage implements IStorage {
     const task: Task = { 
       ...insertTask,
       description: insertTask.description || null,
+      completed: false,
       id, 
       createdAt: new Date(),
     };

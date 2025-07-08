@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, User, Building2, Calendar, Filter, CheckSquare } from "lucide-react";
+import { Plus, User, Building2, Calendar, Filter, CheckSquare, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,13 +71,7 @@ export default function Kanban() {
   // Mark task as completed
   const markAsCompletedMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      // Find the "Concluído" stage
-      const completedStage = stages.find(stage => stage.name.toLowerCase() === "concluído");
-      if (!completedStage) {
-        throw new Error("Etapa 'Concluído' não encontrada");
-      }
-
-      const response = await apiRequest("PUT", `/api/tasks/${taskId}`, { stageId: completedStage.id });
+      const response = await apiRequest("PUT", `/api/tasks/${taskId}`, { completed: true });
       return response.json();
     },
     onSuccess: () => {
@@ -99,6 +93,34 @@ export default function Kanban() {
   const handleMarkAsCompleted = (taskId: number) => {
     if (confirm("Tem certeza que deseja marcar esta tarefa como concluída?")) {
       markAsCompletedMutation.mutate(taskId);
+    }
+  };
+
+  // Reopen task
+  const reopenTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await apiRequest("PUT", `/api/tasks/${taskId}`, { completed: false });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Tarefa reaberta",
+        description: "A tarefa foi reaberta com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao reabrir tarefa",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleReopenTask = (taskId: number) => {
+    if (confirm("Tem certeza que deseja reabrir esta tarefa?")) {
+      reopenTaskMutation.mutate(taskId);
     }
   };
 
@@ -233,15 +255,24 @@ export default function Kanban() {
                     key={task.id}
                     className={`cursor-move hover:shadow-md transition-all ${
                       draggedTask?.id === task.id ? "opacity-50 rotate-3" : ""
-                    }`}
+                    } ${task.completed ? 'bg-green-50 border-green-200' : ''}`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, task)}
                   >
                     <CardContent className="p-4">
                       <div className="space-y-3">
-                        <h4 className="font-medium text-gray-900 text-sm leading-tight">
-                          {task.title}
-                        </h4>
+                        <div className="flex items-start justify-between">
+                          <h4 className={`font-medium text-sm leading-tight ${
+                            task.completed ? 'text-green-900 line-through' : 'text-gray-900'
+                          }`}>
+                            {task.title}
+                          </h4>
+                          {task.completed && (
+                            <Badge className="bg-green-100 text-green-800 text-xs">
+                              Concluída
+                            </Badge>
+                          )}
+                        </div>
 
                         {task.description && (
                           <p className="text-xs text-gray-600 line-clamp-2">
@@ -285,7 +316,7 @@ export default function Kanban() {
                               const today = new Date();
                               const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                               
-                              return taskDate < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                              return taskDate < todayOnly && !task.completed;
                             }
                             
                             // Fallback for other date formats
@@ -294,15 +325,15 @@ export default function Kanban() {
                             const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
                             const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                             
-                            return endDateOnly < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                            return endDateOnly < todayOnly && !task.completed;
                           })() && (
                             <Badge variant="destructive" className="text-xs">
                               Atrasado
                             </Badge>
                           )}
                           
-                          {/* Botão de marcar como concluída */}
-                          {task.stageName.toLowerCase() !== "concluído" && (
+                          {/* Botão de marcar como concluída ou reabrir */}
+                          {!task.completed ? (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -314,6 +345,19 @@ export default function Kanban() {
                               title="Marcar como concluída"
                             >
                               <CheckSquare className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReopenTask(task.id);
+                              }}
+                              className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Reabrir tarefa"
+                            >
+                              <RotateCcw className="h-3 w-3" />
                             </Button>
                           )}
                         </div>

@@ -357,28 +357,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
       // Task statistics
-      const openTasks = await Promise.all(
-        tasks.map(async task => {
-          const stage = await storage.getKanbanStage(task.stageId);
-          return stage && stage.name?.toLowerCase() !== "concluído";
-        })
-      ).then(results => results.filter(Boolean).length);
+      const openTasks = tasks.filter(task => !task.completed).length;
 
-      const overdueTasks = await Promise.all(
-        tasks.map(async task => {
-          const stage = await storage.getKanbanStage(task.stageId);
-          const isNotCompleted = stage && stage.name?.toLowerCase() !== "concluído";
-          
-          // Compare dates without time component
-          const taskEndDate = new Date(task.endDate);
-          const today = new Date();
-          const taskEndDateOnly = new Date(taskEndDate.getFullYear(), taskEndDate.getMonth(), taskEndDate.getDate());
-          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          
-          const isOverdue = taskEndDateOnly < todayOnly;
-          return isNotCompleted && isOverdue;
-        })
-      ).then(results => results.filter(Boolean).length);
+      const overdueTasks = tasks.filter(task => {
+        if (task.completed) return false;
+        
+        // Compare dates without time component
+        const taskEndDate = new Date(task.endDate);
+        const today = new Date();
+        const taskEndDateOnly = new Date(taskEndDate.getFullYear(), taskEndDate.getMonth(), taskEndDate.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        return taskEndDateOnly < todayOnly;
+      }).length;
 
       const todayTasks = tasks.filter(task => {
         const taskEndDate = new Date(task.endDate).toISOString().split('T')[0];

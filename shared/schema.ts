@@ -57,6 +57,7 @@ export const tasks = pgTable("tasks", {
   clientId: integer("client_id").notNull().references(() => clients.id),
   userId: integer("user_id").notNull().references(() => users.id),
   stageId: integer("stage_id").notNull().references(() => kanbanStages.id),
+  completed: boolean("completed").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
