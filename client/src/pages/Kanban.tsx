@@ -229,7 +229,14 @@ export default function Kanban() {
                           <div className="flex items-center space-x-2 text-xs text-gray-600">
                             <Calendar className="h-3 w-3" />
                             <span>
-                              {format(new Date(task.endDate), "dd/MM")}
+                              {(() => {
+                                // Handle date string directly to avoid timezone issues
+                                if (task.endDate.includes('-')) {
+                                  const [year, month, day] = task.endDate.split('-');
+                                  return `${day}/${month}`;
+                                }
+                                return format(new Date(task.endDate), "dd/MM");
+                              })()}
                             </span>
                           </div>
                         </div>
