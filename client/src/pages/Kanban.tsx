@@ -243,10 +243,19 @@ export default function Kanban() {
 
                         {/* Indicador de prazo */}
                         {(() => {
+                          // Handle date comparison properly for YYYY-MM-DD format
+                          if (task.endDate.includes('-')) {
+                            const [year, month, day] = task.endDate.split('-').map(Number);
+                            const taskDate = new Date(year, month - 1, day); // month is 0-indexed
+                            const today = new Date();
+                            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                            
+                            return taskDate < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                          }
+                          
+                          // Fallback for other date formats
                           const endDate = new Date(task.endDate);
                           const today = new Date();
-                          
-                          // Normalize dates to compare only day/month/year (ignore time)
                           const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
                           const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                           
