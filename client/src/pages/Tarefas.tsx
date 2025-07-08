@@ -74,19 +74,6 @@ export default function Tarefas() {
     enabled: clientSearchTerm.length >= 2 || isClientSearchOpen,
   });
 
-  // Fetch selected client for display purposes
-  const selectedClientId = form.watch('clientId');
-  const { data: selectedClient } = useQuery({
-    queryKey: ['/api/clients', selectedClientId],
-    queryFn: async () => {
-      if (!selectedClientId) return null;
-      const response = await fetch(`/api/clients/${selectedClientId}`);
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: !!selectedClientId && selectedClientId > 0,
-  });
-
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
   });
@@ -107,6 +94,19 @@ export default function Tarefas() {
       userId: 0,
       stageId: 0,
     },
+  });
+
+  // Fetch selected client for display purposes
+  const selectedClientId = form.watch('clientId');
+  const { data: selectedClient } = useQuery({
+    queryKey: ['/api/clients', selectedClientId],
+    queryFn: async () => {
+      if (!selectedClientId) return null;
+      const response = await fetch(`/api/clients/${selectedClientId}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!selectedClientId && selectedClientId > 0,
   });
 
   // Mutations
