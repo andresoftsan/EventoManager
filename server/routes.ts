@@ -368,7 +368,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tasks.map(async task => {
           const stage = await storage.getKanbanStage(task.stageId);
           const isNotCompleted = stage && stage.name?.toLowerCase() !== "concluído";
-          const isOverdue = new Date(task.endDate) < new Date();
+          
+          // Compare dates without time component
+          const taskEndDate = new Date(task.endDate);
+          const today = new Date();
+          const taskEndDateOnly = new Date(taskEndDate.getFullYear(), taskEndDate.getMonth(), taskEndDate.getDate());
+          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          
+          const isOverdue = taskEndDateOnly < todayOnly;
           return isNotCompleted && isOverdue;
         })
       ).then(results => results.filter(Boolean).length);
@@ -400,9 +407,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pendingProcessSteps = allPendingSteps.length;
         
         // Count overdue process steps
-        overdueProcessSteps = allPendingSteps.filter(step => 
-          step.dueDate && new Date(step.dueDate) < new Date()
-        ).length;
+        overdueProcessSteps = allPendingSteps.filter(step => {
+          if (!step.dueDate) return false;
+          
+          // Compare dates without time component
+          const stepDueDate = new Date(step.dueDate);
+          const today = new Date();
+          const stepDueDateOnly = new Date(stepDueDate.getFullYear(), stepDueDate.getMonth(), stepDueDate.getDate());
+          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          
+          return stepDueDateOnly < todayOnly;
+        }).length;
         
         // Count process steps due today
         todayProcessSteps = allPendingSteps.filter(step => {
@@ -420,9 +435,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pendingProcessSteps = userPendingSteps.length;
         
         // Count overdue process steps
-        overdueProcessSteps = userPendingSteps.filter(step => 
-          step.dueDate && new Date(step.dueDate) < new Date()
-        ).length;
+        overdueProcessSteps = userPendingSteps.filter(step => {
+          if (!step.dueDate) return false;
+          
+          // Compare dates without time component
+          const stepDueDate = new Date(step.dueDate);
+          const today = new Date();
+          const stepDueDateOnly = new Date(stepDueDate.getFullYear(), stepDueDate.getMonth(), stepDueDate.getDate());
+          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          
+          return stepDueDateOnly < todayOnly;
+        }).length;
         
         // Count process steps due today
         todayProcessSteps = userPendingSteps.filter(step => {

@@ -235,7 +235,16 @@ export default function Kanban() {
                         </div>
 
                         {/* Indicador de prazo */}
-                        {new Date(task.endDate) < new Date() && task.stageName.toLowerCase() !== "concluído" && (
+                        {(() => {
+                          const endDate = new Date(task.endDate);
+                          const today = new Date();
+                          
+                          // Normalize dates to compare only day/month/year (ignore time)
+                          const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                          
+                          return endDateOnly < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                        })() && (
                           <Badge variant="destructive" className="text-xs">
                             Atrasado
                           </Badge>
