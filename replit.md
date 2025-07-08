@@ -170,6 +170,11 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - June 26, 2025: Fixed user listing bug where master admin couldn't see newly created users due to company filtering
 - June 26, 2025: Modified user access control to allow master admin (username "admin") to view all users regardless of company associations
 - June 26, 2025: Resolved cache invalidation issues by setting staleTime to 0 for immediate data refresh after mutations
+- July 8, 2025: Implemented comprehensive API externa para integração de clientes com sistemas de terceiros
+- July 8, 2025: Created secure API endpoints: POST, PUT, and GET for client management via external systems
+- July 8, 2025: Added API key authentication system with EXTERNAL_API_KEY environment variable
+- July 8, 2025: Enhanced client search functionality in task creation form with searchable dropdown interface
+- July 8, 2025: Added process step metrics to dashboard (pending, overdue, due today) with admin/user separation
 
 ## User Preferences
 

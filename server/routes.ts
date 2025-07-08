@@ -509,6 +509,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== EXTERNAL API INTEGRATION =====
+  
+  // Create client via external API (no authentication required for system integration)
+  app.post("/api/external/clients", async (req, res) => {
+    try {
+      // Validate API key from headers
+      const apiKey = req.headers['x-api-key'];
+      if (!apiKey || apiKey !== process.env.EXTERNAL_API_KEY) {
+        return res.status(401).json({ 
+          message: "Chave de API inválida ou ausente. Use o header 'x-api-key'." 
+        });
+      }
+
+      // Parse and validate client data
+      const clientData = insertClientSchema.parse(req.body);
+      
+      // Check if client already exists by CNPJ
+      if (clientData.cnpj) {
+        const existingClients = await storage.getAllClients();
+        const existingClient = existingClients.find(client => client.cnpj === clientData.cnpj);
+        
+        if (existingClient) {
+          return res.status(409).json({ 
+            message: "Cliente já existe com este CNPJ",
+            existingClient: {
+              id: existingClient.id,
+              razaoSocial: existingClient.razaoSocial,
+              cnpj: existingClient.cnpj
+            }
+          });
+        }
+      }
+
+      // Create the client
+      const client = await storage.createClient(clientData);
+      
+      res.status(201).json({
+        message: "Cliente criado com sucesso",
+        client: {
+          id: client.id,
+          razaoSocial: client.razaoSocial,
+          nomeFantasia: client.nomeFantasia,
+          cnpj: client.cnpj,
+          email: client.email,
+          telefone: client.telefone,
+          endereco: client.endereco
+        }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        });
+      }
+      
+      console.error("Erro ao criar cliente via API externa:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Update client via external API
+  app.put("/api/external/clients/:id", async (req, res) => {
+    try {
+      // Validate API key from headers
+      const apiKey = req.headers['x-api-key'];
+      if (!apiKey || apiKey !== process.env.EXTERNAL_API_KEY) {
+        return res.status(401).json({ 
+          message: "Chave de API inválida ou ausente. Use o header 'x-api-key'." 
+        });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      // Parse and validate client data
+      const clientData = insertClientSchema.partial().parse(req.body);
+      
+      // Check if client exists
+      const existingClient = await storage.getClient(id);
+      if (!existingClient) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      // Check CNPJ uniqueness if updating CNPJ
+      if (clientData.cnpj && clientData.cnpj !== existingClient.cnpj) {
+        const allClients = await storage.getAllClients();
+        const cnpjExists = allClients.find(client => client.cnpj === clientData.cnpj && client.id !== id);
+        
+        if (cnpjExists) {
+          return res.status(409).json({ 
+            message: "Já existe outro cliente com este CNPJ",
+            existingClient: {
+              id: cnpjExists.id,
+              razaoSocial: cnpjExists.razaoSocial,
+              cnpj: cnpjExists.cnpj
+            }
+          });
+        }
+      }
+
+      // Update the client
+      const updatedClient = await storage.updateClient(id, clientData);
+      
+      if (!updatedClient) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      res.json({
+        message: "Cliente atualizado com sucesso",
+        client: {
+          id: updatedClient.id,
+          razaoSocial: updatedClient.razaoSocial,
+          nomeFantasia: updatedClient.nomeFantasia,
+          cnpj: updatedClient.cnpj,
+          email: updatedClient.email,
+          telefone: updatedClient.telefone,
+          endereco: updatedClient.endereco
+        }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        });
+      }
+      
+      console.error("Erro ao atualizar cliente via API externa:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Get client by CNPJ via external API
+  app.get("/api/external/clients/cnpj/:cnpj", async (req, res) => {
+    try {
+      // Validate API key from headers
+      const apiKey = req.headers['x-api-key'];
+      if (!apiKey || apiKey !== process.env.EXTERNAL_API_KEY) {
+        return res.status(401).json({ 
+          message: "Chave de API inválida ou ausente. Use o header 'x-api-key'." 
+        });
+      }
+
+      const cnpj = req.params.cnpj;
+      
+      // Get all clients and find by CNPJ
+      const allClients = await storage.getAllClients();
+      const client = allClients.find(client => client.cnpj === cnpj);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      res.json({
+        client: {
+          id: client.id,
+          razaoSocial: client.razaoSocial,
+          nomeFantasia: client.nomeFantasia,
+          cnpj: client.cnpj,
+          email: client.email,
+          telefone: client.telefone,
+          endereco: client.endereco
+        }
+      });
+    } catch (error) {
+      console.error("Erro ao buscar cliente por CNPJ via API externa:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
   // ===== COMPANIES ROUTES =====
   
   // Get all companies (admin only)
