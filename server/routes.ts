@@ -464,6 +464,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single client by ID
+  app.get("/api/clients/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const client = await storage.getClient(id);
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar cliente" });
+    }
+  });
+
   // Create client
   app.post("/api/clients", requireAuth, async (req, res) => {
     try {

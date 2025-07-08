@@ -58,6 +58,8 @@ export default function Tarefas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
+  const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const { toast } = useToast();
   const authQuery = useAuth();
 
@@ -66,8 +68,23 @@ export default function Tarefas() {
     queryKey: ['/api/tasks'],
   });
 
+  // Only fetch clients when user starts searching
   const { data: clients = [] } = useQuery({
     queryKey: ['/api/clients'],
+    enabled: clientSearchTerm.length >= 2 || isClientSearchOpen,
+  });
+
+  // Fetch selected client for display purposes
+  const selectedClientId = form.watch('clientId');
+  const { data: selectedClient } = useQuery({
+    queryKey: ['/api/clients', selectedClientId],
+    queryFn: async () => {
+      if (!selectedClientId) return null;
+      const response = await fetch(`/api/clients/${selectedClientId}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!selectedClientId && selectedClientId > 0,
   });
 
   const { data: users = [] } = useQuery({
@@ -203,6 +220,8 @@ export default function Tarefas() {
   const handleEdit = (task: TaskWithDetails) => {
     setEditingTask(task);
     setTempChecklistItems([]); // Reset temp items when editing
+    setClientSearchTerm("");
+    setIsClientSearchOpen(false);
     
     // Format dates properly for input fields
     const formatDateForInput = (dateValue: string | Date) => {
@@ -225,6 +244,8 @@ export default function Tarefas() {
   const handleNewTask = () => {
     setEditingTask(null);
     setTempChecklistItems([]);
+    setClientSearchTerm("");
+    setIsClientSearchOpen(false);
     form.reset({
       title: "",
       description: "",
@@ -569,16 +590,25 @@ export default function Tarefas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Cliente *</FormLabel>
-                        <Popover>
+                        <Popover 
+                          open={isClientSearchOpen} 
+                          onOpenChange={(open) => {
+                            setIsClientSearchOpen(open);
+                            if (!open) {
+                              setClientSearchTerm("");
+                            }
+                          }}
+                        >
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 role="combobox"
                                 className="w-full justify-between"
+                                onClick={() => setIsClientSearchOpen(true)}
                               >
-                                {field.value
-                                  ? clients.find((client: any) => client.id === field.value)?.razaoSocial
+                                {selectedClient
+                                  ? selectedClient.razaoSocial
                                   : "Selecione o cliente..."}
                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -586,35 +616,58 @@ export default function Tarefas() {
                           </PopoverTrigger>
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
-                              <CommandInput placeholder="Buscar cliente..." />
+                              <CommandInput 
+                                placeholder="Digite pelo menos 2 caracteres para buscar..." 
+                                value={clientSearchTerm}
+                                onValueChange={(value) => {
+                                  setClientSearchTerm(value);
+                                  if (value.length >= 2) {
+                                    setIsClientSearchOpen(true);
+                                  }
+                                }}
+                              />
                               <CommandList>
-                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                                <CommandGroup>
-                                  {Array.isArray(clients) && clients.map((client: any) => (
-                                    <CommandItem
-                                      key={client.id}
-                                      value={`${client.razaoSocial} ${client.nomeFantasia || ''} ${client.cnpj || ''}`}
-                                      onSelect={() => {
-                                        field.onChange(client.id);
-                                      }}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">{client.razaoSocial}</span>
-                                        {client.nomeFantasia && client.nomeFantasia !== client.razaoSocial && (
-                                          <span className="text-sm text-gray-500">{client.nomeFantasia}</span>
-                                        )}
-                                        {client.cnpj && (
-                                          <span className="text-xs text-gray-400">{client.cnpj}</span>
-                                        )}
-                                      </div>
-                                      <Check
-                                        className={`ml-auto h-4 w-4 ${
-                                          client.id === field.value ? "opacity-100" : "opacity-0"
-                                        }`}
-                                      />
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
+                                {clientSearchTerm.length < 2 ? (
+                                  <CommandEmpty>Digite pelo menos 2 caracteres para buscar clientes.</CommandEmpty>
+                                ) : (
+                                  <>
+                                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                    <CommandGroup>
+                                      {Array.isArray(clients) && clients
+                                        .filter((client: any) => 
+                                          client.razaoSocial.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+                                          (client.nomeFantasia && client.nomeFantasia.toLowerCase().includes(clientSearchTerm.toLowerCase())) ||
+                                          (client.cnpj && client.cnpj.includes(clientSearchTerm))
+                                        )
+                                        .map((client: any) => (
+                                          <CommandItem
+                                            key={client.id}
+                                            value={`${client.razaoSocial} ${client.nomeFantasia || ''} ${client.cnpj || ''}`}
+                                            onSelect={() => {
+                                              field.onChange(client.id);
+                                              setClientSearchTerm("");
+                                              setIsClientSearchOpen(false);
+                                            }}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{client.razaoSocial}</span>
+                                              {client.nomeFantasia && client.nomeFantasia !== client.razaoSocial && (
+                                                <span className="text-sm text-gray-500">{client.nomeFantasia}</span>
+                                              )}
+                                              {client.cnpj && (
+                                                <span className="text-xs text-gray-400">{client.cnpj}</span>
+                                              )}
+                                            </div>
+                                            <Check
+                                              className={`ml-auto h-4 w-4 ${
+                                                client.id === field.value ? "opacity-100" : "opacity-0"
+                                              }`}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                  </>
+                                )}
                               </CommandList>
                             </Command>
                           </PopoverContent>
