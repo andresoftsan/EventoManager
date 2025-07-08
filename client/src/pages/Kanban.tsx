@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, User, Building2, Calendar, Filter } from "lucide-react";
+import { Plus, User, Building2, Calendar, Filter, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -67,6 +67,40 @@ export default function Kanban() {
       });
     },
   });
+
+  // Mark task as completed
+  const markAsCompletedMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      // Find the "Concluído" stage
+      const completedStage = stages.find(stage => stage.name.toLowerCase() === "concluído");
+      if (!completedStage) {
+        throw new Error("Etapa 'Concluído' não encontrada");
+      }
+
+      const response = await apiRequest("PUT", `/api/tasks/${taskId}`, { stageId: completedStage.id });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Tarefa concluída",
+        description: "A tarefa foi marcada como concluída com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao marcar tarefa como concluída",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMarkAsCompleted = (taskId: number) => {
+    if (confirm("Tem certeza que deseja marcar esta tarefa como concluída?")) {
+      markAsCompletedMutation.mutate(taskId);
+    }
+  };
 
   // Filtrar tarefas por usuário
   const filteredTasks = selectedUserId === "all" 
@@ -242,29 +276,47 @@ export default function Kanban() {
                         </div>
 
                         {/* Indicador de prazo */}
-                        {(() => {
-                          // Handle date comparison properly for YYYY-MM-DD format
-                          if (task.endDate.includes('-')) {
-                            const [year, month, day] = task.endDate.split('-').map(Number);
-                            const taskDate = new Date(year, month - 1, day); // month is 0-indexed
+                        <div className="flex items-center justify-between">
+                          {(() => {
+                            // Handle date comparison properly for YYYY-MM-DD format
+                            if (task.endDate.includes('-')) {
+                              const [year, month, day] = task.endDate.split('-').map(Number);
+                              const taskDate = new Date(year, month - 1, day); // month is 0-indexed
+                              const today = new Date();
+                              const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                              
+                              return taskDate < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                            }
+                            
+                            // Fallback for other date formats
+                            const endDate = new Date(task.endDate);
                             const today = new Date();
+                            const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
                             const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                             
-                            return taskDate < todayOnly && task.stageName.toLowerCase() !== "concluído";
-                          }
+                            return endDateOnly < todayOnly && task.stageName.toLowerCase() !== "concluído";
+                          })() && (
+                            <Badge variant="destructive" className="text-xs">
+                              Atrasado
+                            </Badge>
+                          )}
                           
-                          // Fallback for other date formats
-                          const endDate = new Date(task.endDate);
-                          const today = new Date();
-                          const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-                          const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          
-                          return endDateOnly < todayOnly && task.stageName.toLowerCase() !== "concluído";
-                        })() && (
-                          <Badge variant="destructive" className="text-xs">
-                            Atrasado
-                          </Badge>
-                        )}
+                          {/* Botão de marcar como concluída */}
+                          {task.stageName.toLowerCase() !== "concluído" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsCompleted(task.id);
+                              }}
+                              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Marcar como concluída"
+                            >
+                              <CheckSquare className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -265,6 +265,49 @@ export default function Tarefas() {
     }
   };
 
+  // Mark task as completed
+  const markAsCompletedMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      // Find the "Concluído" stage
+      const completedStage = stages.find(stage => stage.name.toLowerCase() === "concluído");
+      if (!completedStage) {
+        throw new Error("Etapa 'Concluído' não encontrada");
+      }
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stageId: completedStage.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao marcar tarefa como concluída');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      toast({
+        title: "Tarefa concluída",
+        description: "A tarefa foi marcada como concluída com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMarkAsCompleted = (taskId: number) => {
+    if (confirm("Tem certeza que deseja marcar esta tarefa como concluída?")) {
+      markAsCompletedMutation.mutate(taskId);
+    }
+  };
+
   // Filter tasks by search term, date range, and status
   const filteredTasks = tasks.filter((task: TaskWithDetails) => {
     // Filter by title
@@ -449,6 +492,17 @@ export default function Tarefas() {
                     </Badge>
                   </div>
                   <div className="flex space-x-1 ml-2">
+                    {task.stageName.toLowerCase() !== "concluído" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleMarkAsCompleted(task.id)}
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                        title="Marcar como concluída"
+                      >
+                        <CheckSquare className="h-3 w-3" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
