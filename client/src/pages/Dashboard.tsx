@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Stats {
   totalEvents: number;
+  completedEvents: number;
   todayEvents: number;
   nextWeekEvents: number;
   activeUsers: number;
@@ -58,6 +59,13 @@ export default function Dashboard() {
       icon: Calendar,
       bgColor: "bg-green-50",
       iconColor: "text-green-600",
+    },
+    {
+      title: "Eventos Realizados",
+      value: stats?.completedEvents || 0,
+      icon: CheckSquare,
+      bgColor: "bg-emerald-50",
+      iconColor: "text-emerald-600",
     },
     {
       title: "Tarefas em Aberto",

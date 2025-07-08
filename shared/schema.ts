@@ -21,6 +21,7 @@ export const events = pgTable("events", {
   startTime: text("start_time").notNull(), // HH:MM format
   endTime: text("end_time").notNull(), // HH:MM format
   userId: integer("user_id").notNull().references(() => users.id),
+  completed: boolean("completed").default(false).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

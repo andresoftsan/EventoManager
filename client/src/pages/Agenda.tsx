@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, CheckSquare, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -90,6 +90,50 @@ export default function Agenda() {
     },
   });
 
+  const markEventAsCompletedMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("PUT", `/api/events/${id}`, { completed: true });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Sucesso",
+        description: "Evento marcado como realizado!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao marcar evento como realizado",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const reopenEventMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("PUT", `/api/events/${id}`, { completed: false });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Sucesso",
+        description: "Evento reaberto com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao reabrir evento",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSaveEvent = async (data: any) => {
     if (editingEvent) {
       await updateEventMutation.mutateAsync({ id: editingEvent.id, data });
@@ -112,6 +156,18 @@ export default function Agenda() {
   const handleNewEvent = () => {
     setEditingEvent(undefined);
     setEventModalOpen(true);
+  };
+
+  const handleMarkEventAsCompleted = (id: number) => {
+    if (confirm("Tem certeza que deseja marcar este evento como realizado?")) {
+      markEventAsCompletedMutation.mutate(id);
+    }
+  };
+
+  const handleReopenEvent = (id: number) => {
+    if (confirm("Tem certeza que deseja reabrir este evento?")) {
+      reopenEventMutation.mutate(id);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -319,10 +375,12 @@ export default function Agenda() {
                               <div
                                 key={event.id}
                                 className={`text-xs p-1 rounded text-white truncate ${
-                                  eventIndex % 3 === 0 ? 'bg-blue-500' :
-                                  eventIndex % 3 === 1 ? 'bg-green-500' : 'bg-yellow-500'
+                                  event.completed 
+                                    ? 'bg-green-600 line-through' 
+                                    : eventIndex % 3 === 0 ? 'bg-blue-500' :
+                                      eventIndex % 3 === 1 ? 'bg-green-500' : 'bg-yellow-500'
                                 }`}
-                                title={`${event.title} - ${event.startTime} às ${event.endTime}`}
+                                title={`${event.title} - ${event.startTime} às ${event.endTime} ${event.completed ? '(Realizado)' : ''}`}
                               >
                                 {event.startTime} {event.title}
                               </div>
@@ -381,7 +439,11 @@ export default function Agenda() {
                       </div>
                       <div className="space-y-1">
                         {day.events.slice(0, 3).map((event, eventIndex) => (
-                          <div key={event.id} className="text-xs p-1 rounded bg-blue-100 text-blue-800 truncate">
+                          <div key={event.id} className={`text-xs p-1 rounded truncate ${
+                            event.completed 
+                              ? 'bg-green-100 text-green-800 line-through' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
                             {event.startTime} - {event.title}
                           </div>
                         ))}
@@ -429,20 +491,35 @@ export default function Agenda() {
               ) : (
                 <div className="space-y-3">
                   {generateDayView().events.map((event, index) => (
-                    <div key={event.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div key={event.id} className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
+                      event.completed ? 'bg-green-50 border-green-200' : ''
+                    }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className={`rounded-lg p-3 ${
+                            event.completed ? 'bg-green-100' :
                             index % 3 === 0 ? 'bg-blue-50' :
                             index % 3 === 1 ? 'bg-green-50' : 'bg-yellow-50'
                           }`}>
                             <CalendarIcon className={`h-5 w-5 ${
+                              event.completed ? 'text-green-600' :
                               index % 3 === 0 ? 'text-blue-600' :
                               index % 3 === 1 ? 'text-green-600' : 'text-yellow-600'
                             }`} />
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-800">{event.title}</h4>
+                            <div className="flex items-center space-x-2">
+                              <h4 className={`font-medium ${
+                                event.completed ? 'text-green-900 line-through' : 'text-gray-800'
+                              }`}>
+                                {event.title}
+                              </h4>
+                              {event.completed && (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  Realizado
+                                </Badge>
+                              )}
+                            </div>
                             {event.description && (
                               <p className="text-sm text-gray-600">{event.description}</p>
                             )}
@@ -453,6 +530,27 @@ export default function Agenda() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          {!event.completed ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleMarkEventAsCompleted(event.id)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Marcar como realizado"
+                            >
+                              <CheckSquare className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleReopenEvent(event.id)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Reabrir evento"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"

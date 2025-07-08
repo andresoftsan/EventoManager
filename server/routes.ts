@@ -448,6 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const stats = {
         totalEvents: events.length,
+        completedEvents: events.filter(e => e.completed).length,
         todayEvents: events.filter(e => e.date === today).length,
         nextWeekEvents: events.filter(e => e.date >= today && e.date <= nextWeekStr).length,
         activeUsers: user?.isAdmin ? (await storage.getAllUsers()).length : 1,

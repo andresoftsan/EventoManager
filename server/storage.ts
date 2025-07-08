@@ -305,6 +305,7 @@ export class MemStorage implements IStorage {
       ...insertEvent, 
       id,
       description: insertEvent.description || null,
+      completed: false,
       createdAt: new Date(),
     };
     this.events.set(id, event);
