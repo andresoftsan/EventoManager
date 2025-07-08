@@ -215,25 +215,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const allEvents = await storage.getAllEvents();
         const allUsers = await storage.getAllUsers();
         
-        // Get events from users who share companies with current admin
-        events = await Promise.all(
-          allEvents.map(async (event) => {
-            const eventUser = allUsers.find(u => u.id === event.userId);
-            if (!eventUser) return null;
-            
-            // Check if admin and event user share at least one company
-            const userCompanies = user.companyIds || [];
-            const eventUserCompanies = eventUser.companyIds || [];
-            const hasSharedCompany = userCompanies.some(companyId => 
-              eventUserCompanies.includes(companyId)
-            );
-            
-            return hasSharedCompany ? event : null;
-          })
-        );
-        
-        // Filter out null events
-        events = events.filter(event => event !== null);
+        // Master admin (username "admin") can see all events
+        if (user.username === "admin") {
+          events = allEvents;
+        } else {
+          // Get events from users who share companies with current admin
+          events = await Promise.all(
+            allEvents.map(async (event) => {
+              const eventUser = allUsers.find(u => u.id === event.userId);
+              if (!eventUser) return null;
+              
+              // Check if admin and event user share at least one company
+              const userCompanies = user.companyIds || [];
+              const eventUserCompanies = eventUser.companyIds || [];
+              const hasSharedCompany = userCompanies.some(companyId => 
+                eventUserCompanies.includes(companyId)
+              );
+              
+              return hasSharedCompany ? event : null;
+            })
+          );
+          
+          // Filter out null events
+          events = events.filter(event => event !== null);
+        }
       } else {
         events = await storage.getEventsByUserId(req.session.userId!);
       }
@@ -825,25 +830,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const allTasks = await storage.getAllTasks();
         const allUsers = await storage.getAllUsers();
         
-        // Get tasks from users who share companies with current admin
-        tasks = await Promise.all(
-          allTasks.map(async (task) => {
-            const taskUser = allUsers.find(u => u.id === task.userId);
-            if (!taskUser) return null;
-            
-            // Check if admin and task user share at least one company
-            const userCompanies = user.companyIds || [];
-            const taskUserCompanies = taskUser.companyIds || [];
-            const hasSharedCompany = userCompanies.some(companyId => 
-              taskUserCompanies.includes(companyId)
-            );
-            
-            return hasSharedCompany ? task : null;
-          })
-        );
-        
-        // Filter out null tasks
-        tasks = tasks.filter(task => task !== null);
+        // Master admin (username "admin") can see all tasks
+        if (user.username === "admin") {
+          tasks = allTasks;
+        } else {
+          // Get tasks from users who share companies with current admin
+          tasks = await Promise.all(
+            allTasks.map(async (task) => {
+              const taskUser = allUsers.find(u => u.id === task.userId);
+              if (!taskUser) return null;
+              
+              // Check if admin and task user share at least one company
+              const userCompanies = user.companyIds || [];
+              const taskUserCompanies = taskUser.companyIds || [];
+              const hasSharedCompany = userCompanies.some(companyId => 
+                taskUserCompanies.includes(companyId)
+              );
+              
+              return hasSharedCompany ? task : null;
+            })
+          );
+          
+          // Filter out null tasks
+          tasks = tasks.filter(task => task !== null);
+        }
       } else {
         tasks = await storage.getTasksByUserId(req.session.userId!);
       }
