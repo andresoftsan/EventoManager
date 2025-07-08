@@ -288,8 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/events/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const eventData = insertEventSchema.omit({ userId: true }).parse(req.body);
-
+      
       // Check if event exists and user has permission
       const existingEvent = await storage.getEvent(id);
       if (!existingEvent) {
@@ -300,6 +299,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user?.isAdmin && existingEvent.userId !== req.session.userId) {
         return res.status(403).json({ message: "Não autorizado a editar este evento" });
       }
+
+      // For partial updates (like completed status), use partial schema
+      const eventData = insertEventSchema.omit({ userId: true }).partial().parse(req.body);
 
       const updatedEvent = await storage.updateEvent(id, eventData);
       res.json(updatedEvent);
