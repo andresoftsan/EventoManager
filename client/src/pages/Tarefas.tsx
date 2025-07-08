@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List, Search } from "lucide-react";
+import { Plus, Edit, Trash2, CheckSquare, Calendar, User as UserIcon, Building2, List, Search, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -567,23 +569,56 @@ export default function Tarefas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Cliente *</FormLabel>
-                        <Select
-                          value={field.value ? field.value.toString() : ""}
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o cliente" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Array.isArray(clients) && clients.map((client: any) => (
-                              <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.razaoSocial}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                              >
+                                {field.value
+                                  ? clients.find((client: any) => client.id === field.value)?.razaoSocial
+                                  : "Selecione o cliente..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Buscar cliente..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup>
+                                  {Array.isArray(clients) && clients.map((client: any) => (
+                                    <CommandItem
+                                      key={client.id}
+                                      value={`${client.razaoSocial} ${client.nomeFantasia || ''} ${client.cnpj || ''}`}
+                                      onSelect={() => {
+                                        field.onChange(client.id);
+                                      }}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{client.razaoSocial}</span>
+                                        {client.nomeFantasia && client.nomeFantasia !== client.razaoSocial && (
+                                          <span className="text-sm text-gray-500">{client.nomeFantasia}</span>
+                                        )}
+                                        {client.cnpj && (
+                                          <span className="text-xs text-gray-400">{client.cnpj}</span>
+                                        )}
+                                      </div>
+                                      <Check
+                                        className={`ml-auto h-4 w-4 ${
+                                          client.id === field.value ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
