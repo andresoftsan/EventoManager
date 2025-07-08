@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Trash2, Edit } from "lucide-react";
+import { User, Trash2, Edit, Plus, ArrowUp, ArrowDown, Settings } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -31,7 +32,13 @@ const userFormSchema = z.object({
   companyIds: z.array(z.number()).min(1, "Pelo menos uma empresa deve ser selecionada"),
 });
 
+const stageFormSchema = z.object({
+  name: z.string().min(1, "Nome da etapa é obrigatório"),
+  order: z.number().min(1, "Ordem deve ser maior que 0"),
+});
+
 type UserFormData = z.infer<typeof userFormSchema>;
+type StageFormData = z.infer<typeof stageFormSchema>;
 
 interface UserWithoutPassword {
   id: number;
@@ -43,9 +50,17 @@ interface UserWithoutPassword {
   createdAt: string;
 }
 
+interface KanbanStage {
+  id: number;
+  name: string;
+  order: number;
+  createdAt: string;
+}
+
 export default function Configuracoes() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
+  const [editingStage, setEditingStage] = useState<KanbanStage | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: authData } = useAuth();
@@ -58,6 +73,10 @@ export default function Configuracoes() {
     queryKey: ["/api/companies"],
   });
 
+  const { data: stages = [] } = useQuery<KanbanStage[]>({
+    queryKey: ["/api/kanban-stages"],
+  });
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -67,6 +86,14 @@ export default function Configuracoes() {
       password: "",
       isAdmin: false,
       companyIds: [],
+    },
+  });
+
+  const stageForm = useForm<StageFormData>({
+    resolver: zodResolver(stageFormSchema),
+    defaultValues: {
+      name: "",
+      order: 1,
     },
   });
 
@@ -170,6 +197,94 @@ export default function Configuracoes() {
     },
   });
 
+  // Stage mutations
+  const createStageMutation = useMutation({
+    mutationFn: async (data: StageFormData) => {
+      const response = await apiRequest("POST", "/api/kanban-stages", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kanban-stages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      stageForm.reset();
+      setEditingStage(null);
+      toast({
+        title: "Sucesso",
+        description: "Etapa criada com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao criar etapa",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: StageFormData }) => {
+      const response = await apiRequest("PUT", `/api/kanban-stages/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kanban-stages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      stageForm.reset();
+      setEditingStage(null);
+      toast({
+        title: "Sucesso",
+        description: "Etapa atualizada com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar etapa",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteStageMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/kanban-stages/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kanban-stages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Sucesso",
+        description: "Etapa excluída com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir etapa",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const reorderStageMutation = useMutation({
+    mutationFn: async ({ id, order }: { id: number; order: number }) => {
+      const response = await apiRequest("PUT", `/api/kanban-stages/${id}`, { order });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kanban-stages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao reordenar etapa",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
@@ -207,6 +322,47 @@ export default function Configuracoes() {
     });
   };
 
+  // Stage handlers
+  const onStageSubmit = async (data: StageFormData) => {
+    if (editingStage) {
+      await updateStageMutation.mutateAsync({ id: editingStage.id, data });
+    } else {
+      await createStageMutation.mutateAsync(data);
+    }
+  };
+
+  const handleEditStage = (stage: KanbanStage) => {
+    setEditingStage(stage);
+    stageForm.reset({
+      name: stage.name,
+      order: stage.order,
+    });
+  };
+
+  const handleCancelStageEdit = () => {
+    setEditingStage(null);
+    stageForm.reset({
+      name: "",
+      order: 1,
+    });
+  };
+
+  const handleMoveStageUp = (stage: KanbanStage) => {
+    const currentIndex = stages.findIndex(s => s.id === stage.id);
+    if (currentIndex > 0) {
+      const newOrder = stages[currentIndex - 1].order;
+      reorderStageMutation.mutate({ id: stage.id, order: newOrder });
+    }
+  };
+
+  const handleMoveStageDown = (stage: KanbanStage) => {
+    const currentIndex = stages.findIndex(s => s.id === stage.id);
+    if (currentIndex < stages.length - 1) {
+      const newOrder = stages[currentIndex + 1].order;
+      reorderStageMutation.mutate({ id: stage.id, order: newOrder });
+    }
+  };
+
   const handleDeleteUser = (id: number, username: string) => {
     if (username === "admin") {
       toast({
@@ -229,11 +385,24 @@ export default function Configuracoes() {
     <div className="space-y-4 lg:space-y-6">
       <div>
         <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">Configurações</h2>
-        <p className="text-gray-600 text-sm lg:text-base">Gerencie usuários e permissões do sistema</p>
+        <p className="text-gray-600 text-sm lg:text-base">Gerencie usuários, permissões e configurações do sistema</p>
       </div>
 
-      <div className={`grid gap-4 lg:gap-6 ${authData?.user?.isAdmin ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-        {/* User Registration Form - Only for Admins */}
+      <Tabs defaultValue="users" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Usuários
+          </TabsTrigger>
+          <TabsTrigger value="stages" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Etapas Kanban
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <div className={`grid gap-4 lg:gap-6 ${authData?.user?.isAdmin ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+            {/* User Registration Form - Only for Admins */}
         {authData?.user?.isAdmin && (
           <Card className="border border-gray-200">
             <CardHeader className="border-b border-gray-200">
@@ -500,7 +669,164 @@ export default function Configuracoes() {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="stages" className="space-y-4">
+          {/* Kanban Stage Management */}
+          <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2">
+            {/* Stage Form */}
+            <Card className="border border-gray-200">
+              <CardHeader className="border-b border-gray-200">
+                <CardTitle className="text-lg font-semibold text-gray-800">
+                  {editingStage ? "Editar Etapa" : "Nova Etapa"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <Form {...stageForm}>
+                  <form onSubmit={stageForm.handleSubmit(onStageSubmit)} className="space-y-4">
+                    <FormField
+                      control={stageForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome da Etapa</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Ex: A Fazer, Em Andamento, Concluído..." 
+                              {...field}
+                              disabled={createStageMutation.isPending || updateStageMutation.isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={stageForm.control}
+                      name="order"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ordem</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="1"
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                              disabled={createStageMutation.isPending || updateStageMutation.isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        disabled={createStageMutation.isPending || updateStageMutation.isPending}
+                        className="flex-1"
+                      >
+                        {createStageMutation.isPending || updateStageMutation.isPending ? (
+                          "Salvando..."
+                        ) : (
+                          editingStage ? "Atualizar" : "Criar"
+                        )}
+                      </Button>
+                      
+                      {editingStage && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelStageEdit}
+                          disabled={createStageMutation.isPending || updateStageMutation.isPending}
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Stage List */}
+            <Card className="border border-gray-200">
+              <CardHeader className="border-b border-gray-200">
+                <CardTitle className="text-lg font-semibold text-gray-800">
+                  Etapas Atuais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {stages.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Nenhuma etapa cadastrada
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {stages.sort((a, b) => a.order - b.order).map((stage) => (
+                      <div
+                        key={stage.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline">{stage.order}</Badge>
+                          <span className="font-medium text-gray-800">{stage.name}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMoveStageUp(stage)}
+                            disabled={stage.order === 1 || reorderStageMutation.isPending}
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMoveStageDown(stage)}
+                            disabled={stage.order === stages.length || reorderStageMutation.isPending}
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditStage(stage)}
+                            disabled={createStageMutation.isPending || updateStageMutation.isPending}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm("Tem certeza que deseja excluir esta etapa?")) {
+                                deleteStageMutation.mutate(stage.id);
+                              }
+                            }}
+                            disabled={deleteStageMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
