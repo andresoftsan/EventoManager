@@ -175,6 +175,11 @@ Workday is a comprehensive business management system built for the Brazilian ma
 - July 8, 2025: Added API key authentication system with EXTERNAL_API_KEY environment variable
 - July 8, 2025: Enhanced client search functionality in task creation form with searchable dropdown interface
 - July 8, 2025: Added process step metrics to dashboard (pending, overdue, due today) with admin/user separation
+- July 8, 2025: Implemented independent task completion system - tasks can be marked as completed regardless of kanban stage
+- July 8, 2025: Added task completion field to schema and updated filtering to hide completed tasks from kanban board
+- July 8, 2025: Created event completion functionality - events can now be marked as realized with visual indicators
+- July 8, 2025: Added event completion tracking with green styling, strikethrough text, and "Realizado" badges across all calendar views
+- July 8, 2025: Enhanced dashboard with completed events statistics and improved task/event status management
 
 ## User Preferences
 

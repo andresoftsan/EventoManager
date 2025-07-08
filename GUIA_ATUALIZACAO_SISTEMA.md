@@ -1,326 +1,225 @@
 # Guia de Atualização do Sistema Workday
 
-Este guia explica como atualizar o sistema Workday em ambientes de produção onde já existe uma versão rodando.
+## Resumo das Atualizações Recentes
 
-## 🔍 Antes de Começar
+### Novas Funcionalidades Implementadas:
 
-### 1. Verificar Versão Atual
+1. **Sistema de Conclusão de Tarefas Independente**
+   - Tarefas podem ser marcadas como concluídas independentemente do estágio Kanban
+   - Tarefas concluídas não aparecem mais no Kanban
+   - Indicadores visuais para tarefas concluídas
+
+2. **Sistema de Conclusão de Eventos**
+   - Eventos podem ser marcados como "Realizados"
+   - Indicadores visuais em todas as visualizações da agenda
+   - Estatísticas de eventos realizados no Dashboard
+
+## Passos para Atualização
+
+### 1. Backup dos Dados
 ```bash
-# Verificar última atualização nos logs
-grep "Changelog" replit.md
-
-# Verificar dependências atuais
-cat package.json | grep version
+# Fazer backup do banco de dados atual
+pg_dump -h SEU_HOST -U SEU_USER -d SEU_DATABASE > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-### 2. Backup Essencial
+### 2. Atualização do Código
 ```bash
-# Backup do banco de dados (PostgreSQL)
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+# Navegar para o diretório do projeto
+cd /caminho/para/seu/projeto
 
-# Backup dos arquivos de configuração
-cp .env .env.backup
-cp package.json package.json.backup
-```
+# Parar o servidor atual
+pm2 stop workday
+# ou
+sudo systemctl stop workday
 
-## 🚀 Métodos de Atualização
-
-### Método 1: Atualização Git (Recomendado)
-
-**Para projetos versionados com Git:**
-
-```bash
-# 1. Fazer backup
-git stash push -m "backup before update"
-
-# 2. Puxar atualizações
-git fetch origin
+# Baixar as atualizações (substitua pela forma que você usa)
 git pull origin main
-
-# 3. Instalar novas dependências
-npm install
-
-# 4. Aplicar migrações do banco (se houver)
-npm run db:push
-
-# 5. Reiniciar serviços
-npm run dev  # ou pm2 restart workday
+# ou copie os arquivos atualizados
 ```
 
-### Método 2: Download e Substituição
+### 3. Atualização do Banco de Dados
 
-**Para ambientes sem Git:**
+#### Opção A: PostgreSQL (Recomendado)
+```sql
+-- Adicionar campo 'completed' na tabela tasks
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE NOT NULL;
 
+-- Adicionar campo 'completed' na tabela events
+ALTER TABLE events ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- Atualizar tarefas existentes
+UPDATE tasks SET completed = FALSE WHERE completed IS NULL;
+
+-- Atualizar eventos existentes
+UPDATE events SET completed = FALSE WHERE completed IS NULL;
+```
+
+#### Opção B: MySQL
+```sql
+-- Adicionar campo 'completed' na tabela tasks
+ALTER TABLE tasks ADD COLUMN completed BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- Adicionar campo 'completed' na tabela events
+ALTER TABLE events ADD COLUMN completed BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- Atualizar registros existentes
+UPDATE tasks SET completed = FALSE;
+UPDATE events SET completed = FALSE;
+```
+
+### 4. Configuração do Ambiente
+
+#### Verificar variáveis de ambiente (.env)
 ```bash
-# 1. Parar o serviço
-pm2 stop workday  # ou kill do processo
+# Verificar se estas variáveis existem
+DATABASE_URL=sua_connection_string
+EXTERNAL_API_KEY=workday-api-key-2024
+SESSION_SECRET=sua_session_secret
+```
 
-# 2. Backup da versão atual
-cp -r /caminho/workday /caminho/workday_backup_$(date +%Y%m%d)
-
-# 3. Baixar nova versão
-wget -O workday-nova.zip [URL_DA_NOVA_VERSAO]
-unzip workday-nova.zip
-
-# 4. Preservar configurações
-cp workday_backup/.env workday-nova/
-cp workday_backup/package-lock.json workday-nova/ (se existir)
-
-# 5. Instalar dependências
-cd workday-nova
+### 5. Instalação de Dependências
+```bash
+# Instalar/atualizar dependências
 npm install
 
-# 6. Aplicar migrações
-npm run db:push
+# Se usar yarn
+yarn install
+```
 
-# 7. Iniciar novo serviço
+### 6. Build da Aplicação
+```bash
+# Build para produção
+npm run build
+
+# Ou usar o script específico para seu ambiente
+npm run build-aws
+# ou
+npm run build-production
+```
+
+### 7. Inicialização do Sistema
+```bash
+# Iniciar o servidor
 pm2 start ecosystem.config.js
+# ou
+npm start
+# ou
+sudo systemctl start workday
 ```
 
-### Método 3: Atualização Blue-Green
+### 8. Verificação
 
-**Para zero downtime:**
+#### Testar funcionalidades:
+1. **Login**: Verificar se o login funciona normalmente
+2. **Tarefas**: 
+   - Criar uma tarefa
+   - Marcar como concluída
+   - Verificar se não aparece no Kanban
+3. **Eventos**:
+   - Criar um evento
+   - Marcar como realizado
+   - Verificar indicadores visuais
+4. **Dashboard**: Verificar se as estatísticas estão corretas
 
+## Arquivos Modificados
+
+### Schema Database
+- `shared/schema.ts` - Adicionado campo `completed` em tasks e events
+
+### Backend
+- `server/routes.ts` - Atualizado endpoint PUT para eventos
+- `server/storage.ts` - Atualizado métodos de criação
+
+### Frontend
+- `client/src/pages/Tarefas.tsx` - Sistema de conclusão de tarefas
+- `client/src/pages/Kanban.tsx` - Filtros para tarefas concluídas
+- `client/src/pages/Agenda.tsx` - Sistema de conclusão de eventos
+- `client/src/pages/Dashboard.tsx` - Estatísticas atualizadas
+
+## Estrutura de Arquivos para Deploy
+
+### Para AWS Elastic Beanstalk
+```
+.
+├── aws-dist/
+│   ├── application.js
+│   ├── package.json
+│   └── public/
+├── .ebextensions/
+└── .platform/
+```
+
+### Para Render/Railway
+```
+.
+├── dist/
+│   ├── server.js
+│   └── public/
+├── package.json
+└── Dockerfile (opcional)
+```
+
+## Comandos de Build por Plataforma
+
+### AWS
 ```bash
-# 1. Preparar ambiente paralelo
-cp -r /app/workday /app/workday-new
-
-# 2. Atualizar novo ambiente
-cd /app/workday-new
-git pull origin main
-npm install
-npm run db:push
-
-# 3. Testar novo ambiente na porta alternativa
-PORT=5001 npm start &
-
-# 4. Verificar funcionamento
-curl http://localhost:5001/api/auth/me
-
-# 5. Trocar proxy/load balancer para nova versão
-# 6. Parar versão antiga após confirmação
+node build-for-aws.js
 ```
 
-## 🔧 Plataformas Específicas
-
-### Replit
+### Render/Railway
 ```bash
-# 1. Fazer fork do projeto atualizado
-# 2. Copiar variáveis de ambiente (Secrets)
-# 3. Importar dados se necessário
-# 4. Testar funcionamento
-# 5. Atualizar DNS/domínio se usar custom domain
+node build-for-production.js
 ```
 
-### AWS Elastic Beanstalk
+### Apache/Nginx
 ```bash
-# 1. Criar nova versão da aplicação
-eb create workday-v2
-
-# 2. Deploy da nova versão
-eb deploy workday-v2
-
-# 3. Testar ambiente
-eb open workday-v2
-
-# 4. Trocar URLs se funcionando
-eb swap workday workday-v2
-
-# 5. Terminar versão antiga
-eb terminate workday-old
+npm run build
 ```
 
-### Heroku
-```bash
-# 1. Criar novo app
-heroku create workday-v2
+## Troubleshooting
 
-# 2. Copiar configurações
-heroku config --app=workday-old | heroku config:set --app=workday-v2
+### Problema: Eventos não marcam como realizados
+**Solução**: Verificar se o campo `completed` foi adicionado corretamente na tabela events
 
-# 3. Deploy
-git push heroku-v2 main
+### Problema: Tarefas concluídas ainda aparecem no Kanban
+**Solução**: Limpar cache do navegador e verificar se o campo `completed` existe na tabela tasks
 
-# 4. Migrar banco se necessário
-heroku run npm run db:push --app=workday-v2
+### Problema: Erro 500 ao atualizar eventos
+**Solução**: Verificar se o endpoint PUT está usando schema parcial
 
-# 5. Trocar domínio
-heroku domains:add seudominio.com --app=workday-v2
-```
+## Backup e Rollback
 
-### VPS/Servidor Próprio
-```bash
-# 1. Usar PM2 para gerenciamento
-pm2 save  # salvar configuração atual
-
-# 2. Clonar nova versão
-git clone [REPO] /app/workday-new
-
-# 3. Configurar nova versão
-cd /app/workday-new
-cp /app/workday/.env .
-npm install
-
-# 4. Testar em porta diferente
-PORT=5001 pm2 start ecosystem.config.js --name workday-test
-
-# 5. Trocar versões
-pm2 stop workday
-pm2 start /app/workday-new/ecosystem.config.js --name workday
-pm2 delete workday-test
-```
-
-## 📋 Checklist de Atualização
-
-### Antes da Atualização
-- [ ] Backup do banco de dados
-- [ ] Backup dos arquivos de configuração
-- [ ] Verificar espaço em disco disponível
-- [ ] Notificar usuários sobre manutenção
-- [ ] Documentar versão atual
-
-### Durante a Atualização
-- [ ] Parar serviços antigos
-- [ ] Aplicar nova versão
-- [ ] Instalar dependências
-- [ ] Executar migrações
-- [ ] Verificar configurações
-- [ ] Iniciar novos serviços
-
-### Após a Atualização
-- [ ] Testar login de usuários
-- [ ] Verificar APIs funcionando
-- [ ] Testar criação de dados
-- [ ] Validar relatórios
-- [ ] Monitorar logs de erro
-- [ ] Notificar conclusão
-
-## 🔍 Verificação de Integridade
-
-### Testes Automáticos
-```bash
-# Verificar saúde da API
-curl -f http://localhost:5000/api/auth/me || echo "API com problemas"
-
-# Verificar banco de dados
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM users;" || echo "Banco com problemas"
-
-# Verificar serviços
-pm2 status | grep workday || echo "Processo não rodando"
-```
-
-### Testes Manuais
-1. **Login:** Testar login com usuário admin
-2. **Criação:** Criar uma tarefa/cliente/evento
-3. **Busca:** Testar funcionalidades de busca
-4. **API Externa:** Testar endpoint com chave
-5. **Relatórios:** Gerar um relatório de processo
-
-## 🚨 Rollback em Caso de Problemas
-
-### Rollback Rápido
-```bash
-# Se usando PM2
-pm2 stop workday
-pm2 start /app/workday-backup/ecosystem.config.js --name workday
-
-# Se usando Git
-git reset --hard HEAD~1
-npm install
-npm restart
-```
-
-### Restaurar Banco de Dados
+### Rollback em caso de problemas
 ```bash
 # Parar aplicação
 pm2 stop workday
 
 # Restaurar backup
-psql $DATABASE_URL < backup_YYYYMMDD_HHMMSS.sql
+psql -h SEU_HOST -U SEU_USER -d SEU_DATABASE < backup_TIMESTAMP.sql
+
+# Voltar versão anterior do código
+git checkout versao_anterior
 
 # Reiniciar aplicação
 pm2 start workday
 ```
 
-## 📊 Monitoramento Pós-Atualização
+## Suporte
 
-### Logs para Monitorar
-```bash
-# Logs da aplicação
-pm2 logs workday --lines 100
+Para problemas específicos, verificar:
+1. Logs do servidor: `pm2 logs workday`
+2. Logs do banco: Verificar logs específicos do PostgreSQL/MySQL
+3. Console do navegador: Verificar erros JavaScript
 
-# Logs do banco de dados
-tail -f /var/log/postgresql/postgresql.log
+## Monitoramento Pós-Atualização
 
-# Logs do sistema
-tail -f /var/log/syslog | grep workday
-```
-
-### Métricas Importantes
-- Tempo de resposta da API
-- Uso de memória e CPU
-- Conexões do banco de dados
-- Taxa de erro das requisições
-
-## 🔧 Troubleshooting Comum
-
-### Problema: Dependências não compatíveis
-```bash
-# Limpar cache e reinstalar
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Problema: Migrações falharam
-```bash
-# Verificar status do banco
-npm run db:check
-# Aplicar migrações manualmente
-npm run db:push --force
-```
-
-### Problema: Porta em uso
-```bash
-# Encontrar processo usando a porta
-lsof -i :5000
-# Matar processo
-kill -9 [PID]
-```
-
-### Problema: Variáveis de ambiente perdidas
-```bash
-# Verificar se .env existe
-ls -la .env
-# Restaurar do backup
-cp .env.backup .env
-```
-
-## 📝 Documentação da Atualização
-
-Após cada atualização, documente:
-- Data e hora da atualização
-- Versão anterior e nova
-- Problemas encontrados
-- Tempo de downtime
-- Testes realizados
-
-Exemplo:
-```
-Data: 08/07/2025 14:30
-Versão: v1.2.1 → v1.3.0
-Downtime: 3 minutos
-Problemas: Nenhum
-Testes: ✓ Login ✓ API ✓ Relatórios
-```
-
-## 🔒 Segurança
-
-- Sempre fazer backup antes de atualizar
-- Testar em ambiente de desenvolvimento primeiro
-- Manter chaves de API atualizadas
-- Verificar logs de segurança após atualização
-- Atualizar certificados SSL se necessário
+- Verificar uso de memória
+- Verificar performance das consultas
+- Monitorar logs por 24-48 horas
+- Testar todas as funcionalidades principais
 
 ---
 
-**⚠️ Importante:** Sempre teste a atualização em um ambiente de desenvolvimento antes de aplicar em produção.
+**Data da Atualização**: 08 de Julho de 2025
+**Versão**: 2.1.0
+**Compatibilidade**: PostgreSQL 12+, MySQL 8+, Node.js 18+

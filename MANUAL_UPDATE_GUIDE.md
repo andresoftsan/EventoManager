@@ -1,302 +1,238 @@
-# Guia de Atualização Manual do Sistema Workday (Sem Git)
+# Manual de Atualização - Sistema Workday
 
-## 📋 Pré-requisitos
+## Resumo das Alterações
 
-Você precisará:
-- Acesso ao servidor onde está rodando
-- Backup do banco de dados
-- Códigos fonte da nova versão
-- Acesso SSH/terminal ao servidor
+### Novas Funcionalidades:
+1. **Conclusão de Tarefas**: Tarefas podem ser marcadas como concluídas independentemente do Kanban
+2. **Conclusão de Eventos**: Eventos podem ser marcados como "Realizados"
 
-## 🔧 Passo a Passo Detalhado
+### Alterações no Banco de Dados:
+- Adicionado campo `completed` na tabela `tasks`
+- Adicionado campo `completed` na tabela `events`
 
-### 1. Preparação e Backup
+## Passo a Passo para Atualização
 
+### 1. BACKUP OBRIGATÓRIO
 ```bash
-# Entrar no diretório do sistema atual
-cd /caminho/para/workday
+# PostgreSQL
+pg_dump -h localhost -U postgres -d workday > backup_workday_$(date +%Y%m%d).sql
 
-# Parar o sistema atual
-# Se usando PM2:
-pm2 stop workday
+# MySQL
+mysqldump -u root -p workday > backup_workday_$(date +%Y%m%d).sql
+```
 
-# Se usando systemd:
+### 2. PARAR O SISTEMA
+```bash
+# Se usar PM2
+pm2 stop all
+
+# Se usar systemctl
 sudo systemctl stop workday
 
-# Se executando manualmente:
-# Pressione Ctrl+C ou kill -15 [PID]
-
-# Fazer backup completo
-cp -r /caminho/para/workday /caminho/para/workday_backup_$(date +%Y%m%d_%H%M%S)
-
-# Backup do banco de dados PostgreSQL
-pg_dump $DATABASE_URL > /caminho/para/backup_db_$(date +%Y%m%d_%H%M%S).sql
-
-# Backup das configurações importantes
-cp .env .env.backup
-cp package.json package.json.backup
+# Se usar Docker
+docker-compose down
 ```
 
-### 2. Obter Nova Versão
-
-#### Opção A: Download direto (se disponível)
+### 3. ATUALIZAR CÓDIGO
 ```bash
-# Baixar nova versão
-wget -O workday-nova.zip [URL_DA_NOVA_VERSAO]
-unzip workday-nova.zip
+# Baixar arquivos atualizados
+# Copiar os arquivos do projeto atualizado para sua pasta
+
+# Principais arquivos modificados:
+# - shared/schema.ts
+# - server/routes.ts
+# - server/storage.ts
+# - client/src/pages/Tarefas.tsx
+# - client/src/pages/Kanban.tsx
+# - client/src/pages/Agenda.tsx
+# - client/src/pages/Dashboard.tsx
 ```
 
-#### Opção B: Copiar arquivos manualmente
-```bash
-# Criar diretório temporário
-mkdir /tmp/workday-nova
-# Copiar arquivos novos para /tmp/workday-nova/
+### 4. ATUALIZAR BANCO DE DADOS
+
+#### A. PostgreSQL
+```sql
+-- Conectar ao banco
+psql -h localhost -U postgres -d workday
+
+-- Executar as migrações
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE NOT NULL;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- Atualizar registros existentes
+UPDATE tasks SET completed = FALSE WHERE completed IS NULL;
+UPDATE events SET completed = FALSE WHERE completed IS NULL;
+
+-- Verificar se foi aplicado
+\d tasks
+\d events
 ```
 
-### 3. Preparar Nova Versão
+#### B. MySQL
+```sql
+-- Conectar ao banco
+mysql -u root -p workday
 
+-- Executar as migrações
+ALTER TABLE tasks ADD COLUMN completed BOOLEAN DEFAULT FALSE NOT NULL;
+ALTER TABLE events ADD COLUMN completed BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- Atualizar registros existentes
+UPDATE tasks SET completed = FALSE;
+UPDATE events SET completed = FALSE;
+
+-- Verificar se foi aplicado
+DESCRIBE tasks;
+DESCRIBE events;
+```
+
+### 5. INSTALAR DEPENDÊNCIAS
 ```bash
-# Ir para diretório da nova versão
-cd /tmp/workday-nova
-
-# Restaurar configurações da versão anterior
-cp /caminho/para/workday/.env .
-cp /caminho/para/workday/.env.backup .
-
-# Se existir package-lock.json da versão anterior, copiar também
-if [ -f "/caminho/para/workday/package-lock.json" ]; then
-    cp /caminho/para/workday/package-lock.json .
-fi
-
-# Instalar dependências
 npm install
-
-# Verificar se instalou corretamente
-npm audit
 ```
 
-### 4. Aplicar Migrações e Configurações
-
+### 6. BUILD DA APLICAÇÃO
 ```bash
-# Verificar conexão com banco
-node -e "
-const { Pool } = require('@neondatabase/serverless');
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-pool.query('SELECT 1').then(() => console.log('DB OK')).catch(console.error);
-"
+# Para produção geral
+npm run build
 
-# Aplicar migrações do banco (se necessário)
-npm run db:push
+# Para AWS
+node build-for-aws.js
 
-# Verificar se as tabelas foram criadas/atualizadas
-psql $DATABASE_URL -c "\dt"
+# Para outros ambientes
+node build-for-production.js
 ```
 
-### 5. Testar Nova Versão
-
+### 7. INICIAR O SISTEMA
 ```bash
-# Testar em porta diferente primeiro
-PORT=5001 npm start &
+# PM2
+pm2 start ecosystem.config.js
 
-# Aguardar alguns segundos
-sleep 5
-
-# Testar endpoints básicos
-curl -f http://localhost:5001/api/auth/me || echo "❌ API não está respondendo"
-
-# Testar login
-curl -X POST http://localhost:5001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"master123"}' || echo "❌ Login falhou"
-
-# Se tudo OK, parar teste
-kill $(ps aux | grep 'PORT=5001' | grep -v grep | awk '{print $2}')
-```
-
-### 6. Substituir Versão Atual
-
-```bash
-# Parar versão atual (se ainda estiver rodando)
-pm2 stop workday
-
-# Fazer backup final da versão atual
-mv /caminho/para/workday /caminho/para/workday_old_$(date +%Y%m%d_%H%M%S)
-
-# Mover nova versão para lugar da atual
-mv /tmp/workday-nova /caminho/para/workday
-
-# Ir para diretório da nova versão
-cd /caminho/para/workday
-```
-
-### 7. Iniciar Nova Versão
-
-```bash
-# Se usando PM2:
-pm2 start ecosystem.config.js --name workday
-
-# Se usando systemd:
+# systemctl
 sudo systemctl start workday
-sudo systemctl enable workday
 
-# Se executando manualmente:
-nohup npm start > workday.log 2>&1 &
+# Docker
+docker-compose up -d
+
+# Direto
+npm start
 ```
 
-### 8. Verificar se Funcionou
+### 8. VERIFICAR FUNCIONAMENTO
 
+#### Testes Obrigatórios:
+1. **Login**: Fazer login no sistema
+2. **Tarefas**: 
+   - Criar uma tarefa
+   - Marcar como concluída
+   - Verificar se desaparece do Kanban
+3. **Eventos**:
+   - Criar um evento
+   - Marcar como realizado
+   - Verificar indicadores visuais
+4. **Dashboard**: Verificar estatísticas
+
+## Comandos de Verificação
+
+### Verificar se campos foram adicionados:
+```sql
+-- PostgreSQL
+SELECT column_name, data_type, is_nullable, column_default 
+FROM information_schema.columns 
+WHERE table_name = 'tasks' AND column_name = 'completed';
+
+SELECT column_name, data_type, is_nullable, column_default 
+FROM information_schema.columns 
+WHERE table_name = 'events' AND column_name = 'completed';
+
+-- MySQL
+SHOW COLUMNS FROM tasks WHERE Field = 'completed';
+SHOW COLUMNS FROM events WHERE Field = 'completed';
+```
+
+### Verificar dados:
+```sql
+-- Ver algumas tarefas
+SELECT id, title, completed FROM tasks LIMIT 5;
+
+-- Ver alguns eventos
+SELECT id, title, completed FROM events LIMIT 5;
+```
+
+## Problemas Comuns e Soluções
+
+### 1. Erro "column already exists"
+**Causa**: Campo já foi adicionado anteriormente
+**Solução**: Ignorar erro ou usar `IF NOT EXISTS` (PostgreSQL)
+
+### 2. Eventos não marcam como realizados
+**Causa**: Endpoint PUT não aceita atualizações parciais
+**Solução**: Verificar se o código do server/routes.ts foi atualizado
+
+### 3. Tarefas concluídas ainda aparecem no Kanban
+**Causa**: Frontend não foi atualizado
+**Solução**: Limpar cache do navegador (Ctrl+F5)
+
+### 4. Erro 500 ao atualizar
+**Causa**: Schema de validação não aceita campo `completed`
+**Solução**: Verificar se o schema foi atualizado
+
+## Rollback (Em caso de problemas)
+
+### 1. Parar sistema
 ```bash
-# Aguardar alguns segundos
-sleep 10
-
-# Verificar se processo está rodando
-pm2 status workday
-# ou
-ps aux | grep workday
-
-# Testar API
-curl -f http://localhost:5000/api/auth/me
-
-# Verificar logs
-pm2 logs workday --lines 20
-# ou
-tail -f workday.log
+pm2 stop all
 ```
 
-## 🔄 Arquivos que Precisa Copiar da Versão Anterior
-
-### Essenciais:
-- `.env` (configurações)
-- `package-lock.json` (versões das dependências)
-
-### Opcionais:
-- `uploads/` (se tiver arquivos enviados pelos usuários)
-- `logs/` (logs antigos)
-- Certificados SSL customizados
-
-## 🚨 Rollback em Caso de Problema
-
-Se algo der errado:
-
+### 2. Restaurar backup
 ```bash
-# Parar nova versão
-pm2 stop workday
+# PostgreSQL
+psql -h localhost -U postgres -d workday < backup_workday_YYYYMMDD.sql
 
-# Restaurar versão anterior
-mv /caminho/para/workday /caminho/para/workday_failed
-mv /caminho/para/workday_old_YYYYMMDD_HHMMSS /caminho/para/workday
-
-# Restaurar banco se necessário
-psql $DATABASE_URL < /caminho/para/backup_db_YYYYMMDD_HHMMSS.sql
-
-# Reiniciar versão antiga
-cd /caminho/para/workday
-pm2 start ecosystem.config.js --name workday
-
-# Verificar se voltou ao normal
-curl -f http://localhost:5000/api/auth/me
+# MySQL
+mysql -u root -p workday < backup_workday_YYYYMMDD.sql
 ```
 
-## 📝 Checklist de Verificação Pós-Atualização
-
-### Funcionalidades Básicas:
-- [ ] Login com admin/master123
-- [ ] Dashboard carregando
-- [ ] Criar uma tarefa
-- [ ] Criar um cliente
-- [ ] Acessar módulo de processos
-- [ ] Testar API externa (se usada)
-
-### Verificações Técnicas:
-- [ ] Processo rodando (pm2 status)
-- [ ] Sem erros nos logs
-- [ ] Banco de dados conectado
-- [ ] Todas as tabelas existem
-- [ ] Arquivos estáticos carregando
-
-### Comandos de Verificação:
+### 3. Restaurar código anterior
 ```bash
-# Status do processo
-pm2 status
-
-# Logs recentes
-pm2 logs workday --lines 50
-
-# Verificar tabelas do banco
-psql $DATABASE_URL -c "\dt"
-
-# Verificar espaço em disco
-df -h
-
-# Verificar memória
-free -h
-
-# Testar conectividade
-curl -I http://localhost:5000
+# Voltar versão anterior dos arquivos
 ```
 
-## 🔍 Troubleshooting Comum
-
-### Problema: "Module not found"
+### 4. Reiniciar sistema
 ```bash
-cd /caminho/para/workday
-rm -rf node_modules package-lock.json
-npm install
+pm2 start ecosystem.config.js
 ```
 
-### Problema: "Port already in use"
+## Logs para Monitoramento
+
+### Verificar logs:
 ```bash
-# Encontrar processo usando a porta
-lsof -i :5000
-# Matar processo
-kill -9 [PID]
+# PM2
+pm2 logs
+
+# systemctl
+sudo journalctl -u workday -f
+
+# Docker
+docker-compose logs -f
 ```
 
-### Problema: "Database connection failed"
-```bash
-# Verificar se PostgreSQL está rodando
-sudo systemctl status postgresql
-# Verificar variável de ambiente
-echo $DATABASE_URL
-```
+### Logs importantes:
+- Erros de conexão com banco
+- Erros de schema/validação
+- Erros 500 em endpoints
+- Erros de JavaScript no frontend
 
-### Problema: "Permission denied"
-```bash
-# Ajustar permissões
-sudo chown -R $USER:$USER /caminho/para/workday
-chmod -R 755 /caminho/para/workday
-```
+## Contato para Suporte
 
-## 📊 Estrutura de Arquivos Importante
-
-```
-workday/
-├── server/           # Código do backend
-├── client/           # Código do frontend
-├── shared/           # Schemas compartilhados
-├── .env             # Configurações (MANTER)
-├── package.json     # Dependências
-├── package-lock.json # Versões fixas (MANTER)
-├── README.md        # Documentação
-└── *.md             # Guias e documentação
-```
-
-## 🕐 Tempo Estimado
-
-- Backup: 5-10 minutos
-- Download/preparação: 10-15 minutos
-- Instalação: 5-10 minutos
-- Testes: 5-10 minutos
-- **Total: 25-45 minutos**
-
-## 💡 Dicas Importantes
-
-1. **Sempre teste em horário de menor movimento**
-2. **Avise os usuários sobre a manutenção**
-3. **Tenha o backup testado e funcional**
-4. **Documente qualquer problema encontrado**
-5. **Mantenha backups antigos por pelo menos 7 dias**
+Em caso de problemas durante a atualização:
+1. Verificar os logs
+2. Conferir se o banco foi atualizado corretamente
+3. Verificar se todos os arquivos foram copiados
+4. Testar em ambiente de desenvolvimento primeiro
 
 ---
 
-**⚠️ Lembre-se:** Este processo causa downtime. Planeje adequadamente e sempre teste em ambiente de desenvolvimento primeiro!
+**Importante**: Sempre faça backup antes de atualizar!
+**Data**: 08 de Julho de 2025
+**Versão**: 2.1.0
