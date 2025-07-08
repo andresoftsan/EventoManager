@@ -58,6 +58,7 @@ export default function Tarefas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("abertas"); // "abertas", "concluidas", "todas"
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const { toast } = useToast();
@@ -264,7 +265,7 @@ export default function Tarefas() {
     }
   };
 
-  // Filter tasks by search term and date range
+  // Filter tasks by search term, date range, and status
   const filteredTasks = tasks.filter((task: TaskWithDetails) => {
     // Filter by title
     const matchesTitle = task.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -275,7 +276,18 @@ export default function Tarefas() {
     // Filter by end date
     const matchesEndDate = !endDateFilter || task.endDate <= endDateFilter;
     
-    return matchesTitle && matchesStartDate && matchesEndDate;
+    // Filter by status
+    const isCompleted = task.stageName.toLowerCase() === "concluído";
+    let matchesStatus = true;
+    
+    if (statusFilter === "abertas") {
+      matchesStatus = !isCompleted;
+    } else if (statusFilter === "concluidas") {
+      matchesStatus = isCompleted;
+    }
+    // If statusFilter === "todas", matchesStatus remains true
+    
+    return matchesTitle && matchesStartDate && matchesEndDate && matchesStatus;
   });
 
   // Helper function to format dates correctly (avoiding timezone issues)
@@ -353,8 +365,23 @@ export default function Tarefas() {
           />
         </div>
 
-        {/* Filtros de Data */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Filtros de Data e Status */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="abertas">Tarefas Abertas</SelectItem>
+                <SelectItem value="concluidas">Tarefas Concluídas</SelectItem>
+                <SelectItem value="todas">Todas as Tarefas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data Inicial (a partir de)
@@ -384,6 +411,7 @@ export default function Tarefas() {
                 setSearchTerm("");
                 setStartDateFilter("");
                 setEndDateFilter("");
+                setStatusFilter("abertas");
               }}
               className="w-full"
             >
@@ -466,7 +494,7 @@ export default function Tarefas() {
         ) : (
           <div className="col-span-full text-center py-12">
             <CheckSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            {searchTerm || startDateFilter || endDateFilter ? (
+            {searchTerm || startDateFilter || endDateFilter || statusFilter !== "abertas" ? (
               <>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
                 <p className="text-gray-500 mb-4">
